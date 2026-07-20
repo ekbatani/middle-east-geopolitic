@@ -30,5 +30,5 @@ The project is designed as a source-driven analytical system rather than a gener
 7. Hermes tools, monitoring, and alerts
 
 ## Current status
-
+ 
 The product idea and implementation design are complete. The next milestone is the Phase 0 project scaffold described in the implementation document.
