@@ -31,4 +31,18 @@ The project is designed as a source-driven analytical system rather than a gener
 
 ## Current status
 
-The product idea and implementation design are complete. The next milestone is the Phase 0 project scaffold described in the implementation document.
+Phase 0 is complete: the Python package (`uv`, Python 3.13), FastAPI/Celery/CLI app skeletons, the shared kernel (config, logging, IDs, security, errors), a Docker Compose stack (Postgres/pgvector, Redis, MinIO, Prometheus, Grafana), an empty Alembic scaffold, and CI (Ruff, mypy, pytest) are in place and passing. No domain models or business logic exist yet — that starts with Phase 1 (actor, source, document, claim, evidence, and event modules).
+
+### Local development
+
+```
+uv sync
+cp .env.example .env
+make dev       # FastAPI on http://localhost:8000
+make worker    # Celery worker
+make beat      # Celery beat
+make test
+make lint
+make typecheck
+make compose-up   # full stack via Docker Compose
+```

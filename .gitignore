@@ -1,0 +1,46 @@
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.eggs/
+build/
+dist/
+
+# Virtual environments
+.venv/
+venv/
+
+# uv
+.uv-cache/
+
+# Environment and secrets
+.env
+.env.*
+!.env.example
+
+# Testing and coverage
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+.coverage.*
+htmlcov/
+
+# Editors
+.idea/
+*.swp
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Docker volumes / local data
+.data/
+minio-data/
+postgres-data/
+
+# Logs
+*.log
+
+# Alembic
+migrations/versions/__pycache__/
