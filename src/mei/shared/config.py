@@ -34,6 +34,11 @@ class Settings(BaseSettings):
 
     hermes_api_key: str = ""
 
+    # Hostnames the SSRF policy in infrastructure/collection permits even
+    # though they resolve to a private/loopback/link-local address (e.g. an
+    # internal mirror). Empty by default per section 10.3 of the design.
+    collector_allowed_private_hosts: list[str] = Field(default_factory=list)
+
     @property
     def is_production(self) -> bool:
         return self.app_env == "production"

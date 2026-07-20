@@ -23,7 +23,17 @@ def get_session_factory() -> async_sessionmaker[AsyncSession]:
 
 
 async def get_session() -> AsyncIterator[AsyncSession]:
-    """FastAPI dependency yielding a request-scoped session."""
+    """FastAPI dependency yielding a request-scoped session.
+
+    Repositories only `flush()`; this dependency owns the transaction
+    boundary and commits once the request handler returns normally, or
+    rolls back if it raised.
+    """
     session_factory = get_session_factory()
     async with session_factory() as session:
-        yield session
+        try:
+            yield session
+            await session.commit()
+        except Exception:
+            await session.rollback()
+            raise

@@ -3,7 +3,7 @@ from fastapi.responses import JSONResponse
 from prometheus_client import make_asgi_app
 
 from apps.api.middleware.correlation import CorrelationIdMiddleware
-from apps.api.routers import health
+from apps.api.routers import actors, auth, claims, documents, events, health, sources
 from mei.shared.config import get_settings
 from mei.shared.errors import MeiError
 from mei.shared.logging import configure_logging
@@ -39,8 +39,14 @@ def create_app() -> FastAPI:
     app.mount("/metrics", make_asgi_app())
 
     api_v1 = APIRouter(prefix="/api/v1")
-    # Domain routers (actors, sources, documents, claims, events, ...) are
-    # registered here as they land, starting in Phase 1.
+    api_v1.include_router(auth.router)
+    api_v1.include_router(actors.router)
+    api_v1.include_router(sources.router)
+    api_v1.include_router(documents.router)
+    api_v1.include_router(claims.router)
+    api_v1.include_router(events.router)
+    # Relationship, risk, scenario, investigation, report, and monitor
+    # routers land in Phases 2-5 as those domain modules are built.
     app.include_router(api_v1)
 
     return app

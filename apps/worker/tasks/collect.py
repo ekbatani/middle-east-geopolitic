@@ -1,4 +1,10 @@
+import asyncio
+from uuid import UUID
+
 from apps.worker.celery_app import celery_app
+from mei.application.services.source_ingestion import SourceIngestionService
+from mei.infrastructure.database.session import get_session_factory
+from mei.infrastructure.repositories.sources import SourceRepository
 from mei.shared.logging import get_logger
 
 logger = get_logger(__name__)
@@ -38,12 +44,20 @@ def archive_old_raw_data() -> None:
 def fetch_and_archive_document(source_endpoint_id: str, url: str) -> None:
     """Fetch a single URL under the SSRF-safe HTTP policy and archive raw bytes.
 
-    Triggered on manual submission and by the polling tasks above.
-    Implemented in Phase 1/2.
+    Wraps the same `SourceIngestionService` the manual `/sources/submit` API
+    endpoint calls synchronously, so an automated Phase 2 poller can enqueue
+    this task instead once endpoint discovery lands.
     """
-    logger.info(
-        "task.not_implemented",
-        task="fetch_and_archive_document",
-        source_endpoint_id=source_endpoint_id,
-        url=url,
-    )
+    asyncio.run(_fetch_and_archive_document_async(source_endpoint_id, url))
+
+
+async def _fetch_and_archive_document_async(source_endpoint_id: str, url: str) -> None:
+    session_factory = get_session_factory()
+    async with session_factory() as session:
+        endpoint = await SourceRepository(session).get_endpoint(UUID(source_endpoint_id))
+        if endpoint is None:
+            logger.warning("collect.endpoint_not_found", source_endpoint_id=source_endpoint_id)
+            return
+
+        await SourceIngestionService(session).submit_url(url=url, source_id=endpoint.source_id)
+        await session.commit()

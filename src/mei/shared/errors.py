@@ -51,3 +51,11 @@ class UnsupportedURLError(MeiError):
     problem_type = "https://mei.dev/errors/unsupported-url"
     status_code = 422
     title = "Unsupported URL"
+
+
+class FetchError(MeiError):
+    """Raised when a source URL cannot be retrieved or archived."""
+
+    problem_type = "https://mei.dev/errors/fetch-failed"
+    status_code = 502
+    title = "Fetch Failed"

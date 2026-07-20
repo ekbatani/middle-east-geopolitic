@@ -45,3 +45,71 @@ class EvidenceStance(StrEnum):
     PARTIALLY_SUPPORTS = "partially_supports"
     CONTEXTUALIZES = "contextualizes"
     REPEATS = "repeats"
+
+
+class ActorStatus(StrEnum):
+    ACTIVE = "active"
+    INACTIVE = "inactive"
+    DEFUNCT = "defunct"
+    MERGED = "merged"
+
+
+class SourceType(StrEnum):
+    NEWS_OUTLET = "news_outlet"
+    WIRE_SERVICE = "wire_service"
+    GOVERNMENT = "government"
+    THINK_TANK = "think_tank"
+    NGO = "ngo"
+    ACADEMIC = "academic"
+    SOCIAL_MEDIA = "social_media"
+    OTHER = "other"
+
+
+class EndpointType(StrEnum):
+    RSS = "rss"
+    HTML = "html"
+    API = "api"
+    MANUAL = "manual"
+
+
+class DocumentStatus(StrEnum):
+    PENDING = "pending"
+    FETCHED = "fetched"
+    PARSED = "parsed"
+    FAILED = "failed"
+
+
+class UserStatus(StrEnum):
+    ACTIVE = "active"
+    DISABLED = "disabled"
+
+
+class RoleName(StrEnum):
+    ADMIN = "admin"
+    ANALYST = "analyst"
+    APPROVER = "approver"
+    READ_ONLY = "read_only"
+
+
+class Scope(StrEnum):
+    INTELLIGENCE_READ = "intelligence:read"
+    SOURCES_SUBMIT = "sources:submit"
+    CLAIMS_CREATE = "claims:create"
+    CLAIMS_ASSESS = "claims:assess"
+    EVENTS_CREATE = "events:create"
+    EVENTS_APPROVE = "events:approve"
+    INVESTIGATIONS_CREATE = "investigations:create"
+    INVESTIGATIONS_READ = "investigations:read"
+    RELATIONSHIPS_ASSESS = "relationships:assess"
+    RISKS_RECALCULATE = "risks:recalculate"
+    SCENARIOS_SIMULATE = "scenarios:simulate"
+    REPORTS_GENERATE = "reports:generate"
+    REPORTS_APPROVE = "reports:approve"
+    MONITORS_MANAGE = "monitors:manage"
+    ADMIN_CONFIGURATION = "admin:configuration"
+
+
+class AuditActorType(StrEnum):
+    USER = "user"
+    API_KEY = "api_key"
+    SYSTEM = "system"

@@ -1,0 +1,53 @@
+# Minimal Phase 1 actor seed set (Epic B). Extended with regional armed
+# groups, external powers, and full alias coverage in later phases.
+actors:
+  - canonical_name: Iran
+    actor_type: country
+    native_name: "ایران"
+  - canonical_name: Israel
+    actor_type: country
+    native_name: "ישראל"
+  - canonical_name: Saudi Arabia
+    actor_type: country
+    native_name: "السعودية"
+  - canonical_name: United States
+    actor_type: country
+  - canonical_name: Russia
+    actor_type: country
+  - canonical_name: Turkey
+    actor_type: country
+    native_name: "Türkiye"
+  - canonical_name: Egypt
+    actor_type: country
+    native_name: "مصر"
+  - canonical_name: Iraq
+    actor_type: country
+    native_name: "العراق"
+  - canonical_name: Syria
+    actor_type: country
+    native_name: "سوريا"
+  - canonical_name: Lebanon
+    actor_type: country
+    native_name: "لبنان"
+  - canonical_name: Yemen
+    actor_type: country
+    native_name: "اليمن"
+  - canonical_name: Jordan
+    actor_type: country
+    native_name: "الأردن"
+  - canonical_name: Qatar
+    actor_type: country
+    native_name: "قطر"
+  - canonical_name: United Arab Emirates
+    actor_type: country
+  - canonical_name: United Nations
+    actor_type: international_organization
+  - canonical_name: Hezbollah
+    actor_type: armed_group
+    native_name: "حزب الله"
+  - canonical_name: Hamas
+    actor_type: armed_group
+    native_name: "حماس"
+  - canonical_name: Islamic Revolutionary Guard Corps
+    actor_type: military
+    native_name: "سپاه پاسداران انقلاب اسلامی"

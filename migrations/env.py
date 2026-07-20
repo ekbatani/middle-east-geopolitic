@@ -5,12 +5,9 @@ from alembic import context
 from sqlalchemy import Connection, pool
 from sqlalchemy.ext.asyncio import async_engine_from_config
 
+from mei.infrastructure.database import models as _models  # noqa: F401
 from mei.infrastructure.database.base import Base
 from mei.shared.config import get_settings
-
-# Import domain model modules here as they are added so their tables
-# register on Base.metadata and are picked up by autogenerate. Empty for
-# now: no domain models exist yet (Phase 0).
 
 config = context.config
 
