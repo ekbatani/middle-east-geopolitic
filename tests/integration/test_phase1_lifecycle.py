@@ -7,6 +7,7 @@ Alembic migration this phase adds rather than `Base.metadata.create_all`,
 so the hand-written migration is exercised at least once.
 """
 
+import os
 import shutil
 import subprocess
 from collections.abc import AsyncIterator, Iterator
@@ -55,14 +56,26 @@ def postgres_url() -> Iterator[str]:
 
 
 @pytest.fixture(scope="module", autouse=True)
-def _apply_migrations(postgres_url: str, monkeypatch: pytest.MonkeyPatch) -> None:
+def _apply_migrations(postgres_url: str) -> Iterator[None]:
     # migrations/env.py builds its engine from get_settings().database_url,
     # which already expects the asyncpg driver used by the app itself.
-    monkeypatch.setenv("DATABASE_URL", postgres_url)
+    # `monkeypatch` is function-scoped and can't be used from a
+    # module-scoped fixture, so the env var is restored manually here.
+    previous_url = os.environ.get("DATABASE_URL")
+    os.environ["DATABASE_URL"] = postgres_url
     get_settings.cache_clear()
 
     config = Config(str(REPO_ROOT / "alembic.ini"))
     command.upgrade(config, "head")
+
+    try:
+        yield
+    finally:
+        if previous_url is None:
+            os.environ.pop("DATABASE_URL", None)
+        else:
+            os.environ["DATABASE_URL"] = previous_url
+        get_settings.cache_clear()
 
 
 @pytest_asyncio.fixture
