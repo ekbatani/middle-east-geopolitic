@@ -11,6 +11,10 @@ _PROMPT_FILES: dict[tuple[str, str], Path] = {
     / "prompts"
     / "extraction"
     / "claims_events_v1.md",
+    ("risk_adjustment", "risk_adjustment_v1"): _REPO_ROOT
+    / "prompts"
+    / "risks"
+    / "risk_adjustment_v1.md",
 }
 
 

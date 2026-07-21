@@ -125,3 +125,52 @@ class AuditActorType(StrEnum):
     USER = "user"
     API_KEY = "api_key"
     SYSTEM = "system"
+
+
+class RelationshipStatus(StrEnum):
+    ACTIVE = "active"
+    DORMANT = "dormant"
+    ENDED = "ended"
+
+
+class RelationshipDirectionality(StrEnum):
+    SYMMETRIC = "symmetric"
+    SOURCE_TO_TARGET = "source_to_target"
+    TARGET_TO_SOURCE = "target_to_source"
+
+
+class Trend(StrEnum):
+    RISING = "rising"
+    FALLING = "falling"
+    STABLE = "stable"
+
+
+class ScopeType(StrEnum):
+    """What a risk or indicator observation is measured against (design doc section 8.7)."""
+
+    COUNTRY = "country"
+    RELATIONSHIP = "relationship"
+    ACTOR = "actor"
+    CONFLICT = "conflict"
+    GLOBAL = "global"
+
+
+class IndicatorNormalizationMethod(StrEnum):
+    """How `indicator_observations.raw_value` maps to a 0-1 `normalized_value`."""
+
+    MIN_MAX = "min_max"
+    BOOLEAN = "boolean"
+    MANUAL = "manual"
+
+
+class IndicatorDirection(StrEnum):
+    """Whether a higher normalized indicator value raises or lowers the risk it feeds."""
+
+    POSITIVE = "positive"
+    INVERSE = "inverse"
+
+
+class RiskApprovalStatus(StrEnum):
+    PENDING = "pending"
+    APPROVED = "approved"
+    REJECTED = "rejected"

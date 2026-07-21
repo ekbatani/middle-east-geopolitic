@@ -17,9 +17,19 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from mei.application.services.identity import IdentityService
 from mei.infrastructure.database.session import get_session_factory
 from mei.infrastructure.repositories.actors import ActorRepository
+from mei.infrastructure.repositories.indicators import IndicatorRepository
+from mei.infrastructure.repositories.risks import RiskRepository
 from mei.infrastructure.repositories.sources import SourceRepository
 from mei.shared.config import get_settings
-from mei.shared.enums import ActorType, EndpointType, RoleName, Scope, SourceType
+from mei.shared.enums import (
+    ActorType,
+    EndpointType,
+    IndicatorDirection,
+    IndicatorNormalizationMethod,
+    RoleName,
+    Scope,
+    SourceType,
+)
 from mei.shared.logging import configure_logging, get_logger
 
 configure_logging(json_output=False)
@@ -29,6 +39,7 @@ ADMIN_EMAIL = "admin@mei.local"
 CONFIGS_DIR = Path(__file__).resolve().parent.parent / "configs"
 ACTORS_SEED_PATH = CONFIGS_DIR / "actors.seed.yml"
 SOURCE_POLICY_PATH = CONFIGS_DIR / "source-policy.yml"
+RISK_INDICATORS_PATH = CONFIGS_DIR / "risk-indicators.yml"
 
 API_KEY_SCOPES: dict[str, list[Scope]] = {
     "admin": list(Scope),
@@ -97,6 +108,59 @@ async def _seed_sources(session: AsyncSession) -> None:
     logger.info("seed.sources_loaded", created=created, total=len(raw.get("sources", [])))
 
 
+async def _seed_risk_indicators(session: AsyncSession) -> None:
+    indicators_repo = IndicatorRepository(session)
+    risks_repo = RiskRepository(session)
+    raw = yaml.safe_load(RISK_INDICATORS_PATH.read_text(encoding="utf-8"))
+
+    indicators_created = 0
+    for entry in raw.get("indicators", []):
+        code = entry["code"]
+        if await indicators_repo.get_definition_by_code(code) is not None:
+            continue
+        await indicators_repo.create_definition(
+            code=code,
+            name=entry["name"],
+            category=entry["category"],
+            value_type=entry["value_type"],
+            normalization_method=IndicatorNormalizationMethod(entry["normalization_method"]),
+            lower_bound=entry.get("lower_bound"),
+            upper_bound=entry.get("upper_bound"),
+            staleness_hours=entry.get("staleness_hours"),
+        )
+        indicators_created += 1
+
+    definitions_created = 0
+    for entry in raw.get("risk_definitions", []):
+        code = entry["code"]
+        definition = await risks_repo.get_definition_by_code(code)
+        if definition is None:
+            definition = await risks_repo.create_definition(
+                code=code,
+                name=entry["name"],
+                description=entry.get("description"),
+                scope_types=list(entry["scope_types"]),
+            )
+            definitions_created += 1
+
+        for weight_entry in entry.get("weights", []):
+            indicator = await indicators_repo.get_definition_by_code(weight_entry["indicator_code"])
+            if indicator is None:
+                continue
+            await risks_repo.set_weight(
+                risk_definition_id=definition.id,
+                indicator_definition_id=indicator.id,
+                weight=weight_entry["weight"],
+                direction=IndicatorDirection(weight_entry.get("direction", "positive")),
+            )
+
+    logger.info(
+        "seed.risk_indicators_loaded",
+        indicators_created=indicators_created,
+        risk_definitions_created=definitions_created,
+    )
+
+
 async def main_async() -> None:
     settings = get_settings()
     session_factory = get_session_factory()
@@ -104,6 +168,7 @@ async def main_async() -> None:
     async with session_factory() as session:
         await _seed_actors(session)
         await _seed_sources(session)
+        await _seed_risk_indicators(session)
 
         identity = IdentityService(session, settings)
         user = await identity.register_user(

@@ -1,0 +1,206 @@
+# Phase 3 risk-indicator catalog (design doc section 34) plus the risk
+# definitions and weight mappings that consume them (section 18.1).
+# `lower_bound`/`upper_bound` are only meaningful for `min_max`
+# normalization; `staleness_hours` is how long an observation stays usable
+# before the risk engine excludes it from a base-score calculation
+# (section 18.2/18.3).
+
+indicators:
+  - code: direct_cross_border_attacks
+    name: Direct cross-border attacks
+    category: military
+    value_type: count_per_day
+    normalization_method: min_max
+    lower_bound: 0
+    upper_bound: 10
+    staleness_hours: 72
+  - code: missile_drone_launch_frequency
+    name: Missile and drone launch frequency
+    category: military
+    value_type: count_per_day
+    normalization_method: min_max
+    lower_bound: 0
+    upper_bound: 50
+    staleness_hours: 72
+  - code: force_mobilization
+    name: Force mobilization
+    category: military
+    value_type: personnel_count
+    normalization_method: min_max
+    lower_bound: 0
+    upper_bound: 100000
+    staleness_hours: 168
+  - code: strategic_target_attacks
+    name: Strategic-target attacks
+    category: military
+    value_type: count
+    normalization_method: min_max
+    lower_bound: 0
+    upper_bound: 5
+    staleness_hours: 72
+  - code: attacks_on_civilian_infrastructure
+    name: Attacks on civilian infrastructure
+    category: humanitarian
+    value_type: count
+    normalization_method: min_max
+    lower_bound: 0
+    upper_bound: 10
+    staleness_hours: 72
+  - code: official_escalation_rhetoric
+    name: Official escalation rhetoric
+    category: diplomatic
+    value_type: analyst_scale_0_10
+    normalization_method: manual
+    staleness_hours: 168
+  - code: evacuation_airspace_closure
+    name: Evacuation or airspace closure
+    category: military
+    value_type: boolean
+    normalization_method: boolean
+    staleness_hours: 72
+  - code: alliance_military_activation
+    name: Alliance military activation
+    category: diplomatic
+    value_type: boolean
+    normalization_method: boolean
+    staleness_hours: 168
+  - code: diplomatic_contact_deterioration
+    name: Diplomatic-contact deterioration
+    category: diplomatic
+    value_type: analyst_scale_0_10
+    normalization_method: manual
+    staleness_hours: 168
+  - code: ceasefire_violations
+    name: Ceasefire violations
+    category: military
+    value_type: count
+    normalization_method: min_max
+    lower_bound: 0
+    upper_bound: 20
+    staleness_hours: 72
+  - code: proxy_group_mobilization
+    name: Proxy-group mobilization
+    category: military
+    value_type: analyst_scale_0_10
+    normalization_method: manual
+    staleness_hours: 168
+  - code: maritime_attack_frequency
+    name: Maritime attack frequency
+    category: maritime
+    value_type: count
+    normalization_method: min_max
+    lower_bound: 0
+    upper_bound: 20
+    staleness_hours: 72
+  - code: shipping_diversion
+    name: Shipping diversion
+    category: maritime
+    value_type: percent
+    normalization_method: min_max
+    lower_bound: 0
+    upper_bound: 100
+    staleness_hours: 168
+  - code: insurance_freight_rate_shock
+    name: Insurance or freight-rate shock
+    category: economic
+    value_type: percent_change
+    normalization_method: min_max
+    lower_bound: 0
+    upper_bound: 100
+    staleness_hours: 168
+  - code: oil_gas_export_disruption
+    name: Oil and gas export disruption
+    category: economic
+    value_type: percent
+    normalization_method: min_max
+    lower_bound: 0
+    upper_bound: 100
+    staleness_hours: 168
+  - code: sanctions_expansion
+    name: Sanctions expansion
+    category: economic
+    value_type: count
+    normalization_method: min_max
+    lower_bound: 0
+    upper_bound: 10
+    staleness_hours: 720
+  - code: internal_protest_intensity
+    name: Internal protest intensity
+    category: internal
+    value_type: analyst_scale_0_10
+    normalization_method: manual
+    staleness_hours: 168
+  - code: elite_defection_leadership_instability
+    name: Elite defection or leadership instability
+    category: internal
+    value_type: analyst_scale_0_10
+    normalization_method: manual
+    staleness_hours: 336
+  - code: humanitarian_access_deterioration
+    name: Humanitarian access deterioration
+    category: humanitarian
+    value_type: analyst_scale_0_10
+    normalization_method: manual
+    staleness_hours: 168
+  - code: nuclear_inspection_enrichment_deterioration
+    name: Nuclear inspection or enrichment deterioration
+    category: strategic
+    value_type: analyst_scale_0_10
+    normalization_method: manual
+    staleness_hours: 720
+  - code: geographic_expansion
+    name: Geographic expansion of hostilities
+    category: military
+    value_type: analyst_scale_0_10
+    normalization_method: manual
+    staleness_hours: 72
+
+risk_definitions:
+  - code: interstate_escalation
+    name: Interstate escalation risk
+    description: >
+      Likelihood of further military escalation between two states or
+      state-aligned actors, per design doc section 18.1.
+    scope_types: [relationship, conflict]
+    weights:
+      - indicator_code: direct_cross_border_attacks
+        weight: 0.20
+        direction: positive
+      - indicator_code: force_mobilization
+        weight: 0.15
+        direction: positive
+      - indicator_code: strategic_target_attacks
+        weight: 0.15
+        direction: positive
+      - indicator_code: official_escalation_rhetoric
+        weight: 0.10
+        direction: positive
+      - indicator_code: alliance_military_activation
+        weight: 0.10
+        direction: positive
+      - indicator_code: diplomatic_contact_deterioration
+        weight: 0.10
+        direction: positive
+      - indicator_code: attacks_on_civilian_infrastructure
+        weight: 0.10
+        direction: positive
+      - indicator_code: geographic_expansion
+        weight: 0.10
+        direction: positive
+
+  - code: internal_instability
+    name: Internal instability risk
+    description: >
+      Likelihood of significant internal political disruption within one
+      country over the near term.
+    scope_types: [country]
+    weights:
+      - indicator_code: internal_protest_intensity
+        weight: 0.40
+        direction: positive
+      - indicator_code: elite_defection_leadership_instability
+        weight: 0.30
+        direction: positive
+      - indicator_code: humanitarian_access_deterioration
+        weight: 0.30
+        direction: positive

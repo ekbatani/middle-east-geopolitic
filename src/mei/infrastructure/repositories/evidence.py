@@ -1,5 +1,6 @@
 from uuid import UUID
 
+from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from mei.domain.evidence.models import EvidenceBundle, EvidenceBundleItem
@@ -11,6 +12,14 @@ class EvidenceRepository:
 
     async def get_bundle(self, bundle_id: UUID) -> EvidenceBundle | None:
         return await self._session.get(EvidenceBundle, bundle_id)
+
+    async def list_item_claim_evidence_ids(self, bundle_id: UUID) -> list[UUID]:
+        result = await self._session.execute(
+            select(EvidenceBundleItem.claim_evidence_id).where(
+                EvidenceBundleItem.bundle_id == bundle_id
+            )
+        )
+        return list(result.scalars())
 
     async def create_bundle(
         self, *, title: str, summary: str | None = None, confidence: float | None = None
