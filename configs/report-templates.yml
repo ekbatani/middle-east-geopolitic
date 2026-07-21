@@ -1,0 +1,17 @@
+# Report template catalog (design doc section 25 / repo layout section 5).
+# `period_days` is the lookback window `ReportGenerator.generate` uses to
+# pull approved events, material risk/relationship changes, and active
+# scenarios; `title` is the report's display title (`reports.title`).
+templates:
+  - report_type: daily_brief
+    title: Daily Intelligence Brief
+    period_days: 1
+  - report_type: weekly_outlook
+    title: Weekly Regional Outlook
+    period_days: 7
+  - report_type: country_brief
+    title: Country Brief
+    period_days: 7
+  - report_type: conflict_brief
+    title: Conflict Brief
+    period_days: 7

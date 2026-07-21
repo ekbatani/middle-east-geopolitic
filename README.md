@@ -31,14 +31,15 @@ The project is designed as a source-driven analytical system rather than a gener
 
 ## Current status
 
-Phases 0-3 are complete:
+Phases 0-4 are complete:
 
 - **Phase 0:** the Python package (`uv`, Python 3.13), FastAPI/Celery/CLI app skeletons, the shared kernel (config, logging, IDs, security, errors), a Docker Compose stack (Postgres/pgvector, Redis, MinIO, Prometheus, Grafana), an empty Alembic scaffold, and CI (Ruff, mypy, pytest).
 - **Phase 1:** actor, source, document, claim, evidence, and event modules; authentication and scoped API keys; manual source submission; raw object storage; basic read APIs; audit logging.
 - **Phase 2:** RSS/HTTP collectors and source registry; parsing, language detection, and translation; deduplication; LLM claim/event extraction; entity resolution; analyst review queues.
 - **Phase 3:** relationship model and observation history; indicator definitions and observations; a deterministic risk-scoring engine with bounded LLM adjustment (`RiskEngine`); risk history and explanation APIs; country-brief and relationship-comparison endpoints.
+- **Phase 4:** scenario register and update workflow with sibling-family consistency checks (`ScenarioEngine`); forecast issuance and Brier-score outcome auditing (`ForecastAuditService`); daily/weekly/country/conflict report generation with LLM-optional drafting, Markdown rendering, and an approve/publish workflow (`ReportGenerator`); scenario, forecast, and report APIs; scheduled scenario-update and report-generation worker tasks.
 
-Phase 4 (scenarios, reporting, and forecast audits) is next.
+Phase 5 (Hermes tools, monitoring, and alerts) is next.
 
 ### Local development
 

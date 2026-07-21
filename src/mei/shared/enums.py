@@ -174,3 +174,48 @@ class RiskApprovalStatus(StrEnum):
     PENDING = "pending"
     APPROVED = "approved"
     REJECTED = "rejected"
+
+
+class ScenarioFamily(StrEnum):
+    """The four scenario families a scope is tracked against (design doc section 19.1)."""
+
+    CONTROLLED_DEESCALATION = "controlled_deescalation"
+    MANAGED_CONFRONTATION = "managed_confrontation"
+    REGIONAL_ESCALATION = "regional_escalation"
+    SYSTEMIC_REGIONAL_WAR = "systemic_regional_war"
+
+
+class ScenarioStatus(StrEnum):
+    ACTIVE = "active"
+    INVALIDATED = "invalidated"
+    ARCHIVED = "archived"
+
+
+class ForecastStatus(StrEnum):
+    OPEN = "open"
+    RESOLVED = "resolved"
+    CANCELED = "canceled"
+
+
+class ForecastOutcome(StrEnum):
+    """Design doc section 8.9 `outcome` column. `AMBIGUOUS` resolves the
+    forecast's status without a scorable Brier outcome (design doc section
+    16.4-style unresolved-question handling applied to forecasts)."""
+
+    YES = "yes"
+    NO = "no"
+    AMBIGUOUS = "ambiguous"
+
+
+class ReportType(StrEnum):
+    DAILY_BRIEF = "daily_brief"
+    WEEKLY_OUTLOOK = "weekly_outlook"
+    COUNTRY_BRIEF = "country_brief"
+    CONFLICT_BRIEF = "conflict_brief"
+
+
+class ReportStatus(StrEnum):
+    GENERATED = "generated"
+    APPROVED = "approved"
+    PUBLISHED = "published"
+    REJECTED = "rejected"

@@ -141,6 +141,21 @@ class RelationshipRepository:
         result = await self._session.execute(stmt)
         return result.scalars().first()
 
+    async def list_recent_observations(
+        self, *, since: datetime, limit: int = 200
+    ) -> list[RelationshipObservation]:
+        """Every observation recorded since `since`, across all relationships,
+        for report generation's "relationship changes" section (design doc
+        section 25.3)."""
+        stmt = (
+            select(RelationshipObservation)
+            .where(RelationshipObservation.observed_at >= since)
+            .order_by(RelationshipObservation.observed_at.desc())
+            .limit(limit)
+        )
+        result = await self._session.execute(stmt)
+        return list(result.scalars())
+
     async def list_observations(
         self,
         relationship_id: UUID,

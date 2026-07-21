@@ -153,6 +153,22 @@ class RiskRepository:
         result = await self._session.execute(stmt)
         return list(result.scalars())
 
+    async def list_recent_assessments(
+        self, *, since: datetime, limit: int = 200
+    ) -> list[RiskAssessment]:
+        """Every assessment recorded since `since`, across all definitions and
+        scopes, for report generation's "material changes" section (design
+        doc section 25.1 step 5). Unlike `list_history`, this isn't scoped to
+        one definition/scope pair."""
+        stmt = (
+            select(RiskAssessment)
+            .where(RiskAssessment.assessed_at >= since)
+            .order_by(RiskAssessment.assessed_at.desc())
+            .limit(limit)
+        )
+        result = await self._session.execute(stmt)
+        return list(result.scalars())
+
     async def create_assessment(
         self,
         *,

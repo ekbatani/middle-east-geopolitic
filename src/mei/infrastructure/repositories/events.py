@@ -34,6 +34,8 @@ class EventRepository:
         *,
         lifecycle_status: LifecycleStatus | None = None,
         event_type: str | None = None,
+        since: datetime | None = None,
+        until: datetime | None = None,
         limit: int = 50,
         offset: int = 0,
     ) -> list[Event]:
@@ -42,6 +44,10 @@ class EventRepository:
             stmt = stmt.where(Event.lifecycle_status == lifecycle_status)
         if event_type is not None:
             stmt = stmt.where(Event.event_type == event_type)
+        if since is not None:
+            stmt = stmt.where(Event.started_at >= since)
+        if until is not None:
+            stmt = stmt.where(Event.started_at <= until)
         stmt = stmt.limit(limit).offset(offset)
         result = await self._session.execute(stmt)
         return list(result.scalars().unique())

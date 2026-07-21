@@ -9,12 +9,15 @@ from apps.api.routers import (
     claims,
     documents,
     events,
+    forecasts,
     health,
     indicators,
     intelligence,
     relationships,
+    reports,
     review,
     risks,
+    scenarios,
     sources,
 )
 from mei.shared.config import get_settings
@@ -62,9 +65,12 @@ def create_app() -> FastAPI:
     api_v1.include_router(relationships.router)
     api_v1.include_router(indicators.router)
     api_v1.include_router(risks.router)
+    api_v1.include_router(scenarios.router)
+    api_v1.include_router(forecasts.router)
+    api_v1.include_router(reports.router)
     api_v1.include_router(intelligence.router)
-    # Scenario, investigation, report, and monitor routers land in Phases
-    # 4-5 as those domain modules are built.
+    # Investigation and monitor routers land in Phase 5 as those domain
+    # modules are built.
     app.include_router(api_v1)
 
     return app
