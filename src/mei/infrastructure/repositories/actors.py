@@ -26,6 +26,36 @@ class ActorRepository:
         )
         return result.scalar_one_or_none()
 
+    async def find_by_exact_alias(self, name: str) -> Actor | None:
+        """Entity resolution step 1 (design doc section 12.2): exact normalized match."""
+        result = await self._session.execute(
+            select(Actor)
+            .options(selectinload(Actor.aliases))
+            .where(Actor.canonical_name.ilike(name))
+        )
+        actor = result.scalar_one_or_none()
+        if actor is not None:
+            return actor
+
+        alias_match = select(ActorAlias.actor_id).where(ActorAlias.alias.ilike(name))
+        result = await self._session.execute(
+            select(Actor).options(selectinload(Actor.aliases)).where(Actor.id.in_(alias_match))
+        )
+        return result.scalars().first()
+
+    async def list_candidates(self, *, actor_type: ActorType | None = None) -> list[Actor]:
+        """All actors (with aliases loaded) for fuzzy-match ranking in entity resolution.
+
+        Unbounded by design: resolution needs the full candidate pool, not a
+        page of it. Fine at the actor-registry scale this platform targets;
+        revisit with a search index if that stops being true.
+        """
+        stmt = select(Actor).options(selectinload(Actor.aliases))
+        if actor_type is not None:
+            stmt = stmt.where(Actor.actor_type == actor_type)
+        result = await self._session.execute(stmt)
+        return list(result.scalars().unique())
+
     async def list_all(
         self,
         *,

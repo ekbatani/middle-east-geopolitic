@@ -34,6 +34,14 @@ class Document(Base):
     parser_version: Mapped[str | None] = mapped_column(String(50), default=None)
     status: Mapped[DocumentStatus] = mapped_column(String(20), default=DocumentStatus.PENDING)
     metadata_json: Mapped[dict[str, object]] = mapped_column(JSONB, default=dict)
+    # Deduplication (design doc section 11). `content_fingerprint` is a
+    # simhash-style fingerprint of normalized text used for stage-4
+    # near-duplicate detection; `duplicate_of_document_id` is set once any
+    # dedup stage finds an earlier match.
+    content_fingerprint: Mapped[str | None] = mapped_column(String(16), index=True, default=None)
+    duplicate_of_document_id: Mapped[UUID | None] = mapped_column(
+        ForeignKey("documents.id", ondelete="SET NULL"), index=True, default=None
+    )
 
     chunks: Mapped[list["DocumentChunk"]] = relationship(
         back_populates="document", cascade="all, delete-orphan"

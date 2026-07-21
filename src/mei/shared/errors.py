@@ -59,3 +59,19 @@ class FetchError(MeiError):
     problem_type = "https://mei.dev/errors/fetch-failed"
     status_code = 502
     title = "Fetch Failed"
+
+
+class LLMConfigurationError(MeiError):
+    """Raised when a real LLM adapter is invoked without the required provider config."""
+
+    problem_type = "https://mei.dev/errors/llm-configuration"
+    status_code = 500
+    title = "LLM Not Configured"
+
+
+class LLMOutputError(MeiError):
+    """Raised when an LLM's structured output fails to validate after retries."""
+
+    problem_type = "https://mei.dev/errors/llm-output"
+    status_code = 502
+    title = "LLM Output Invalid"

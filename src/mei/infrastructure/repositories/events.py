@@ -10,6 +10,8 @@ from sqlalchemy.orm import selectinload
 from mei.domain.events.models import Event, EventActor, EventImpact, EventLocation
 from mei.shared.enums import LifecycleStatus, VerificationStatus
 
+_ACTIVE_LIFECYCLE_STATUSES = (LifecycleStatus.EXTRACTED, LifecycleStatus.ASSESSED)
+
 
 class EventRepository:
     def __init__(self, session: AsyncSession) -> None:
@@ -55,6 +57,7 @@ class EventRepository:
         time_precision: str | None = None,
         severity: int | None = None,
         strategic_significance: str | None = None,
+        extraction_metadata_json: dict[str, object] | None = None,
     ) -> Event:
         event = Event(
             event_type=event_type,
@@ -67,10 +70,44 @@ class EventRepository:
             strategic_significance=strategic_significance,
             verification_status=VerificationStatus.UNREVIEWED,
             lifecycle_status=LifecycleStatus.EXTRACTED,
+            extraction_metadata_json=extraction_metadata_json or {},
         )
         self._session.add(event)
         await self._session.flush()
         return event
+
+    async def find_candidates(
+        self,
+        *,
+        event_type: str,
+        window_start: datetime,
+        window_end: datetime,
+        actor_ids: list[UUID],
+    ) -> list[Event]:
+        """Event-clustering heuristic (design doc section 15.2): advisory only.
+
+        Candidates share the event type, fall within the configured time
+        window, and have at least one already-resolved actor in common.
+        Callers decide what to do with >1 match (queue for review rather
+        than auto-merge).
+        """
+        if not actor_ids:
+            return []
+
+        stmt = (
+            self._select_with_relations()
+            .join(EventActor, EventActor.event_id == Event.id)
+            .where(
+                Event.event_type == event_type,
+                Event.lifecycle_status.in_(_ACTIVE_LIFECYCLE_STATUSES),
+                Event.started_at >= window_start,
+                Event.started_at <= window_end,
+                EventActor.actor_id.in_(actor_ids),
+            )
+            .distinct()
+        )
+        result = await self._session.execute(stmt)
+        return list(result.scalars().unique())
 
     async def add_actor(
         self,

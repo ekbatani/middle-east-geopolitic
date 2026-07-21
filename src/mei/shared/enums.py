@@ -79,6 +79,17 @@ class DocumentStatus(StrEnum):
     FAILED = "failed"
 
 
+class ReviewType(StrEnum):
+    ENTITY_RESOLUTION = "entity_resolution"
+    EVENT_DUPLICATE = "event_duplicate"
+
+
+class ReviewStatus(StrEnum):
+    PENDING = "pending"
+    APPROVED = "approved"
+    REJECTED = "rejected"
+
+
 class UserStatus(StrEnum):
     ACTIVE = "active"
     DISABLED = "disabled"
@@ -107,6 +118,7 @@ class Scope(StrEnum):
     REPORTS_APPROVE = "reports:approve"
     MONITORS_MANAGE = "monitors:manage"
     ADMIN_CONFIGURATION = "admin:configuration"
+    REVIEW_RESOLVE = "review:resolve"
 
 
 class AuditActorType(StrEnum):

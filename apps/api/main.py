@@ -3,7 +3,7 @@ from fastapi.responses import JSONResponse
 from prometheus_client import make_asgi_app
 
 from apps.api.middleware.correlation import CorrelationIdMiddleware
-from apps.api.routers import actors, auth, claims, documents, events, health, sources
+from apps.api.routers import actors, auth, claims, documents, events, health, review, sources
 from mei.shared.config import get_settings
 from mei.shared.errors import MeiError
 from mei.shared.logging import configure_logging
@@ -45,8 +45,9 @@ def create_app() -> FastAPI:
     api_v1.include_router(documents.router)
     api_v1.include_router(claims.router)
     api_v1.include_router(events.router)
+    api_v1.include_router(review.router)
     # Relationship, risk, scenario, investigation, report, and monitor
-    # routers land in Phases 2-5 as those domain modules are built.
+    # routers land in Phases 3-5 as those domain modules are built.
     app.include_router(api_v1)
 
     return app

@@ -1,4 +1,5 @@
 import hashlib
+from datetime import datetime
 from urllib.parse import urlparse
 from uuid import UUID
 
@@ -6,6 +7,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from mei.domain.documents.models import Document
 from mei.domain.sources.models import Source
+from mei.infrastructure.collection.dedup import compute_fingerprint
 from mei.infrastructure.collection.http_fetcher import fetch_url, validate_url_security
 from mei.infrastructure.collection.parser import PARSER_VERSION, chunk_text, extract_text
 from mei.infrastructure.object_storage.client import ObjectStorage, build_raw_object_key
@@ -56,6 +58,8 @@ class SourceIngestionService:
         url: str,
         title: str | None = None,
         source_id: UUID | None = None,
+        external_id: str | None = None,
+        published_at: datetime | None = None,
     ) -> Document:
         canonical_url = _normalize_url(url)
         validate_url_security(canonical_url)
@@ -67,7 +71,11 @@ class SourceIngestionService:
             return existing
 
         document = await self._documents.create(
-            source_id=source.id, canonical_url=canonical_url, title=title
+            source_id=source.id,
+            canonical_url=canonical_url,
+            title=title,
+            external_id=external_id,
+            published_at=published_at,
         )
 
         try:
@@ -119,14 +127,49 @@ class SourceIngestionService:
             retrieved_at=retrieved_at,
         )
 
+        # Dedup stage 3 (design doc section 11): raw content hash match.
+        # Checked after archiving (original bytes are always kept, per
+        # section 10.4) but before spending an extraction/LLM pass on it.
+        hash_duplicate = await self._documents.find_by_content_hash(
+            content_hash, exclude_document_id=document.id
+        )
+        if hash_duplicate is not None:
+            await self._documents.mark_duplicate(document, duplicate_of_id=hash_duplicate.id)
+            logger.info(
+                "document.duplicate_content_hash",
+                document_id=str(document.id),
+                duplicate_of_document_id=str(hash_duplicate.id),
+            )
+            return
+
         extracted = extract_text(result.body, url=url)
         if not extracted:
             logger.info("document.no_extractable_text", document_id=str(document.id))
             return
 
-        await self._documents.mark_parsed(
-            document, extracted_text=extracted, parser_version=PARSER_VERSION
+        # Dedup stage 4: normalized text fingerprint match (catches
+        # word-for-word republication under a different URL/content-hash,
+        # e.g. wire-service syndication).
+        fingerprint = compute_fingerprint(extracted)
+        fingerprint_duplicate = await self._documents.find_by_fingerprint(
+            fingerprint, exclude_document_id=document.id
         )
+
+        await self._documents.mark_parsed(
+            document,
+            extracted_text=extracted,
+            parser_version=PARSER_VERSION,
+            content_fingerprint=fingerprint,
+        )
+
+        if fingerprint_duplicate is not None:
+            await self._documents.mark_duplicate(document, duplicate_of_id=fingerprint_duplicate.id)
+            logger.info(
+                "document.duplicate_fingerprint",
+                document_id=str(document.id),
+                duplicate_of_document_id=str(fingerprint_duplicate.id),
+            )
+            return
 
         for sequence, chunk in enumerate(chunk_text(extracted)):
             await self._documents.add_chunk(

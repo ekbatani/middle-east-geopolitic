@@ -2,6 +2,7 @@ from datetime import datetime
 from uuid import UUID
 
 from sqlalchemy import Float, ForeignKey, String, Text, func
+from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from mei.infrastructure.database.base import Base, TimestampMixin
@@ -36,6 +37,9 @@ class Claim(TimestampMixin, Base):
     )
     created_by_type: Mapped[str] = mapped_column(String(20))
     created_by_id: Mapped[str | None] = mapped_column(String(200), default=None)
+    # Provenance for LLM-generated claims per design doc section 13.3
+    # (provider, model, prompt name/version, input/output hash, timestamp).
+    extraction_metadata_json: Mapped[dict[str, object]] = mapped_column(JSONB, default=dict)
 
     evidence: Mapped[list["ClaimEvidence"]] = relationship(
         back_populates="claim", cascade="all, delete-orphan"

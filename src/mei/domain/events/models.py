@@ -2,6 +2,7 @@ from datetime import datetime
 from uuid import UUID
 
 from sqlalchemy import Float, ForeignKey, Integer, String, Text
+from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from mei.infrastructure.database.base import Base, TimestampMixin
@@ -34,6 +35,9 @@ class Event(TimestampMixin, Base):
     supersedes_event_id: Mapped[UUID | None] = mapped_column(
         ForeignKey("events.id", ondelete="SET NULL"), default=None
     )
+    # Provenance for LLM-generated events per design doc section 13.3
+    # (provider, model, prompt name/version, input/output hash, timestamp).
+    extraction_metadata_json: Mapped[dict[str, object]] = mapped_column(JSONB, default=dict)
 
     actors: Mapped[list["EventActor"]] = relationship(
         back_populates="event", cascade="all, delete-orphan"

@@ -17,15 +17,18 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from mei.application.services.identity import IdentityService
 from mei.infrastructure.database.session import get_session_factory
 from mei.infrastructure.repositories.actors import ActorRepository
+from mei.infrastructure.repositories.sources import SourceRepository
 from mei.shared.config import get_settings
-from mei.shared.enums import ActorType, RoleName, Scope
+from mei.shared.enums import ActorType, EndpointType, RoleName, Scope, SourceType
 from mei.shared.logging import configure_logging, get_logger
 
 configure_logging(json_output=False)
 logger = get_logger(__name__)
 
 ADMIN_EMAIL = "admin@mei.local"
-ACTORS_SEED_PATH = Path(__file__).resolve().parent.parent / "configs" / "actors.seed.yml"
+CONFIGS_DIR = Path(__file__).resolve().parent.parent / "configs"
+ACTORS_SEED_PATH = CONFIGS_DIR / "actors.seed.yml"
+SOURCE_POLICY_PATH = CONFIGS_DIR / "source-policy.yml"
 
 API_KEY_SCOPES: dict[str, list[Scope]] = {
     "admin": list(Scope),
@@ -66,12 +69,41 @@ async def _seed_actors(session: AsyncSession) -> None:
     logger.info("seed.actors_loaded", created=created, total=len(raw.get("actors", [])))
 
 
+async def _seed_sources(session: AsyncSession) -> None:
+    repo = SourceRepository(session)
+    raw = yaml.safe_load(SOURCE_POLICY_PATH.read_text(encoding="utf-8"))
+
+    created = 0
+    for entry in raw.get("sources", []):
+        base_url = entry["base_url"]
+        if await repo.get_by_base_url(base_url) is not None:
+            continue
+
+        source = await repo.create(
+            name=entry["name"],
+            source_type=SourceType(entry["source_type"]),
+            base_url=base_url,
+            default_language=entry.get("default_language"),
+        )
+        for endpoint in entry.get("endpoints", []):
+            await repo.create_endpoint(
+                source_id=source.id,
+                endpoint_type=EndpointType.RSS,
+                url=endpoint["url"],
+                schedule=endpoint.get("schedule"),
+            )
+        created += 1
+
+    logger.info("seed.sources_loaded", created=created, total=len(raw.get("sources", [])))
+
+
 async def main_async() -> None:
     settings = get_settings()
     session_factory = get_session_factory()
 
     async with session_factory() as session:
         await _seed_actors(session)
+        await _seed_sources(session)
 
         identity = IdentityService(session, settings)
         user = await identity.register_user(

@@ -39,6 +39,8 @@ class ClaimRepository:
         claimant_actor_id: UUID | None = None,
         subject_actor_id: UUID | None = None,
         event_id: UUID | None = None,
+        lifecycle_status: LifecycleStatus = LifecycleStatus.OBSERVED,
+        extraction_metadata_json: dict[str, object] | None = None,
     ) -> Claim:
         claim = Claim(
             claim_text=claim_text,
@@ -49,11 +51,22 @@ class ClaimRepository:
             subject_actor_id=subject_actor_id,
             event_id=event_id,
             verification_status=VerificationStatus.UNREVIEWED,
-            lifecycle_status=LifecycleStatus.OBSERVED,
+            lifecycle_status=lifecycle_status,
+            extraction_metadata_json=extraction_metadata_json or {},
         )
         self._session.add(claim)
         await self._session.flush()
         return claim
+
+    async def set_actor(self, claim: Claim, *, role: str, actor_id: UUID) -> None:
+        """Backfill a claimant/subject link once entity resolution review resolves it."""
+        if role == "claimant":
+            claim.claimant_actor_id = actor_id
+        elif role == "subject":
+            claim.subject_actor_id = actor_id
+        else:
+            raise ValueError(f"Unknown claim actor role: {role}")
+        await self._session.flush()
 
     async def add_evidence(
         self,

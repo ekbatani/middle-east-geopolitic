@@ -32,6 +32,36 @@ class SourceRepository:
         result = await self._session.execute(stmt)
         return list(result.scalars().unique())
 
+    async def get_by_base_url(self, base_url: str) -> Source | None:
+        result = await self._session.execute(select(Source).where(Source.base_url == base_url))
+        return result.scalar_one_or_none()
+
+    async def list_endpoints_due(
+        self, *, endpoint_type: EndpointType, schedule: str
+    ) -> list[SourceEndpoint]:
+        """Enabled endpoints of the given type/schedule tier, for the collector.
+
+        `schedule` matches the `critical`/`normal` tiering seeded onto
+        `SourceEndpoint.schedule` (design doc section 24.1's two collection
+        frequencies), joined against the parent source's `enabled` flag.
+        """
+        stmt = (
+            select(SourceEndpoint)
+            .join(Source, Source.id == SourceEndpoint.source_id)
+            .where(
+                SourceEndpoint.endpoint_type == endpoint_type,
+                SourceEndpoint.schedule == schedule,
+                Source.enabled.is_(True),
+            )
+        )
+        result = await self._session.execute(stmt)
+        return list(result.scalars())
+
+    async def list_failing_endpoints(self, *, min_failure_count: int = 1) -> list[SourceEndpoint]:
+        stmt = select(SourceEndpoint).where(SourceEndpoint.failure_count >= min_failure_count)
+        result = await self._session.execute(stmt)
+        return list(result.scalars())
+
     async def create(
         self,
         *,
@@ -57,9 +87,16 @@ class SourceRepository:
         endpoint_type: EndpointType,
         url: str,
         parser_name: str | None = None,
+        schedule: str | None = None,
+        priority: int = 100,
     ) -> SourceEndpoint:
         endpoint = SourceEndpoint(
-            source_id=source_id, endpoint_type=endpoint_type, url=url, parser_name=parser_name
+            source_id=source_id,
+            endpoint_type=endpoint_type,
+            url=url,
+            parser_name=parser_name,
+            schedule=schedule,
+            priority=priority,
         )
         self._session.add(endpoint)
         await self._session.flush()

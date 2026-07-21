@@ -39,6 +39,22 @@ class Settings(BaseSettings):
     # internal mirror). Empty by default per section 10.3 of the design.
     collector_allowed_private_hosts: list[str] = Field(default_factory=list)
 
+    # Entity resolution thresholds (RapidFuzz 0-100 score) per section 12.2:
+    # at/above `auto` the match is applied automatically; below `review` no
+    # candidate is confident enough to surface; in between, the best
+    # candidates are queued for analyst review rather than guessed.
+    entity_resolution_auto_threshold: float = Field(default=92.0, ge=0, le=100)
+    entity_resolution_review_threshold: float = Field(default=75.0, ge=0, le=100)
+
+    translation_target_language: str = "en"
+
+    # Window used by the event-clustering heuristic (section 15.2) to decide
+    # whether a newly extracted event should reuse an existing one.
+    event_dedup_window_hours: int = Field(default=48, gt=0)
+
+    # Age threshold used by the archive_old_raw_data maintenance job.
+    raw_data_retention_days: int = Field(default=180, gt=0)
+
     @property
     def is_production(self) -> bool:
         return self.app_env == "production"

@@ -1,0 +1,54 @@
+# Curated source registry for automated collection (design doc section 33,
+# ADR-007: curated sources before open-web autonomy). `schedule` selects
+# which Celery Beat tier polls the endpoint: `critical` (every 10 minutes)
+# or `normal` (hourly), per section 24.1. This file is the collector's
+# entire automated-polling universe -- extend it only with sources that
+# have passed source-policy review.
+sources:
+  - name: Al Jazeera English
+    source_type: news_outlet
+    base_url: https://www.aljazeera.com
+    default_language: en
+    endpoints:
+      - url: https://www.aljazeera.com/xml/rss/all.xml
+        schedule: critical
+
+  - name: BBC News - World
+    source_type: news_outlet
+    base_url: https://www.bbc.co.uk
+    default_language: en
+    endpoints:
+      - url: https://feeds.bbci.co.uk/news/world/rss.xml
+        schedule: critical
+
+  - name: BBC News - Middle East
+    source_type: news_outlet
+    base_url: https://www.bbc.co.uk/news/world/middle_east
+    default_language: en
+    endpoints:
+      - url: https://feeds.bbci.co.uk/news/world/middle_east/rss.xml
+        schedule: critical
+
+  - name: Times of Israel
+    source_type: news_outlet
+    base_url: https://www.timesofisrael.com
+    default_language: en
+    endpoints:
+      - url: https://www.timesofisrael.com/feed/
+        schedule: normal
+
+  - name: Middle East Eye
+    source_type: news_outlet
+    base_url: https://www.middleeasteye.net
+    default_language: en
+    endpoints:
+      - url: https://www.middleeasteye.net/rss
+        schedule: normal
+
+  - name: Al-Monitor
+    source_type: news_outlet
+    base_url: https://www.al-monitor.com
+    default_language: en
+    endpoints:
+      - url: https://www.al-monitor.com/rss
+        schedule: normal
