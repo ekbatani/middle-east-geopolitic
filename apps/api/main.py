@@ -8,6 +8,7 @@ from prometheus_client import make_asgi_app
 from apps.api.middleware.correlation import CorrelationIdMiddleware
 from apps.api.routers import (
     actors,
+    analyst_assessments,
     auth,
     claims,
     documents,
@@ -81,6 +82,7 @@ def create_app() -> FastAPI:
     api_v1.include_router(investigations.router)
     api_v1.include_router(monitors.router)
     api_v1.include_router(graph.router)
+    api_v1.include_router(analyst_assessments.router)
     app.include_router(api_v1)
 
     return app

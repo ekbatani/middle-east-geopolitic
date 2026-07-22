@@ -52,6 +52,7 @@ API_KEY_SCOPES: dict[str, list[Scope]] = {
         Scope.INVESTIGATIONS_CREATE,
         Scope.INVESTIGATIONS_READ,
         Scope.MONITORS_MANAGE,
+        Scope.ANALYST_ASSESSMENTS_RECORD,
     ],
     "hermes-approver": [
         Scope.INTELLIGENCE_READ,

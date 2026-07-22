@@ -315,6 +315,16 @@ TOOLS = [
             "required": ["source_actor_id", "target_actor_id"]
         }
     },
+    {
+        "name": "list_disagreements",
+        "description": "List claims, events, risk assessments, or relationship observations where analysts have recorded conflicting positions.",
+        "inputSchema": {
+            "type": "object",
+            "properties": {
+                "subject_type": {"type": "string", "description": "Optional filter: claim, event, risk_assessment, relationship_observation."}
+            }
+        }
+    },
     # Write
     {
         "name": "submit_source",
@@ -341,6 +351,23 @@ TOOLS = [
                 "analyst_note": {"type": "string", "description": "Optional free-text analyst commentary."}
             },
             "required": ["claim_id", "document_id", "stance", "excerpt"]
+        }
+    },
+    {
+        "name": "record_analyst_position",
+        "description": "Record an analyst's independent position (stance/score/rationale) on a claim, event, risk assessment, or relationship observation, without overwriting other analysts' positions.",
+        "inputSchema": {
+            "type": "object",
+            "properties": {
+                "subject_type": {"type": "string", "description": "claim, event, risk_assessment, or relationship_observation."},
+                "subject_id": {"type": "string", "description": "The UUID of the subject being assessed."},
+                "stance": {"type": "string", "description": "Free-text coarse stance, e.g. agree, disagree, uncertain."},
+                "score": {"type": "number", "description": "Optional numeric estimate, 0-100."},
+                "confidence": {"type": "number", "description": "Optional confidence, 0-1."},
+                "rationale": {"type": "string", "description": "Free-text justification for the position."},
+                "evidence_bundle_id": {"type": "string", "description": "Optional UUID of a supporting evidence bundle."}
+            },
+            "required": ["subject_type", "subject_id"]
         }
     },
     {
@@ -517,6 +544,11 @@ async def execute_tool(name: str, arguments: dict[str, Any]) -> Any:
         if "relationship_status" in arguments:
             params["relationship_status"] = arguments["relationship_status"]
         return await call_api("GET", "/api/v1/graph/path", params=params)
+    elif name == "list_disagreements":
+        params = {}
+        if "subject_type" in arguments:
+            params["subject_type"] = arguments["subject_type"]
+        return await call_api("GET", "/api/v1/analyst-assessments/disagreements", params=params)
 
     # Controlled Write Tools
     elif name == "submit_source":
@@ -530,6 +562,20 @@ async def execute_tool(name: str, arguments: dict[str, Any]) -> Any:
                 "stance": arguments["stance"],
                 "excerpt": arguments["excerpt"],
                 "analyst_note": arguments.get("analyst_note"),
+            },
+        )
+    elif name == "record_analyst_position":
+        return await call_api(
+            "POST",
+            "/api/v1/analyst-assessments",
+            json_data={
+                "subject_type": arguments["subject_type"],
+                "subject_id": arguments["subject_id"],
+                "stance": arguments.get("stance"),
+                "score": arguments.get("score"),
+                "confidence": arguments.get("confidence"),
+                "rationale": arguments.get("rationale"),
+                "evidence_bundle_id": arguments.get("evidence_bundle_id"),
             },
         )
     elif name == "approve_event":
