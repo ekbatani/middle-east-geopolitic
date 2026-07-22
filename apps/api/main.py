@@ -10,6 +10,7 @@ from apps.api.routers import (
     documents,
     events,
     forecasts,
+    graph,
     health,
     indicators,
     intelligence,
@@ -73,6 +74,7 @@ def create_app() -> FastAPI:
     api_v1.include_router(intelligence.router)
     api_v1.include_router(investigations.router)
     api_v1.include_router(monitors.router)
+    api_v1.include_router(graph.router)
     app.include_router(api_v1)
 
     return app

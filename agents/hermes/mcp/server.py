@@ -292,6 +292,29 @@ TOOLS = [
             "required": ["scope_type", "scenario_family", "time_horizon", "hypothetical_context"]
         }
     },
+    {
+        "name": "get_actor_centrality",
+        "description": "Rank actors by their centrality (degree, betweenness, eigenvector) in the actor-relationship graph.",
+        "inputSchema": {
+            "type": "object",
+            "properties": {
+                "relationship_status": {"type": "string", "description": "Filter relationships by status: active, dormant, ended. Default is active."}
+            }
+        }
+    },
+    {
+        "name": "find_actor_path",
+        "description": "Find the shortest path of relationships connecting two actors.",
+        "inputSchema": {
+            "type": "object",
+            "properties": {
+                "source_actor_id": {"type": "string", "description": "The UUID of the source actor."},
+                "target_actor_id": {"type": "string", "description": "The UUID of the target actor."},
+                "relationship_status": {"type": "string", "description": "Filter relationships by status: active, dormant, ended. Default is active."}
+            },
+            "required": ["source_actor_id", "target_actor_id"]
+        }
+    },
     # Write
     {
         "name": "submit_source",
@@ -480,6 +503,20 @@ async def execute_tool(name: str, arguments: dict[str, Any]) -> Any:
                 "hypothetical_context": arguments["hypothetical_context"],
             },
         )
+
+    elif name == "get_actor_centrality":
+        params = {}
+        if "relationship_status" in arguments:
+            params["relationship_status"] = arguments["relationship_status"]
+        return await call_api("GET", "/api/v1/graph/centrality", params=params)
+    elif name == "find_actor_path":
+        params = {
+            "source_actor_id": arguments["source_actor_id"],
+            "target_actor_id": arguments["target_actor_id"],
+        }
+        if "relationship_status" in arguments:
+            params["relationship_status"] = arguments["relationship_status"]
+        return await call_api("GET", "/api/v1/graph/path", params=params)
 
     # Controlled Write Tools
     elif name == "submit_source":

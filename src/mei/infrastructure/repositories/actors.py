@@ -123,6 +123,14 @@ class ActorRepository:
         await self._session.flush()
         return alias_row
 
+    async def list_by_ids(self, actor_ids: list[UUID]) -> list[Actor]:
+        """Batch fetch, e.g. resolving the actors referenced by a set of
+        relationships without one query per actor."""
+        if not actor_ids:
+            return []
+        result = await self._session.execute(select(Actor).where(Actor.id.in_(actor_ids)))
+        return list(result.scalars())
+
     async def list_leadership(self, actor_id: UUID) -> list[ActorLeadership]:
         result = await self._session.execute(
             select(ActorLeadership)
