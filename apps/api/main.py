@@ -13,6 +13,8 @@ from apps.api.routers import (
     health,
     indicators,
     intelligence,
+    investigations,
+    monitors,
     relationships,
     reports,
     review,
@@ -69,8 +71,8 @@ def create_app() -> FastAPI:
     api_v1.include_router(forecasts.router)
     api_v1.include_router(reports.router)
     api_v1.include_router(intelligence.router)
-    # Investigation and monitor routers land in Phase 5 as those domain
-    # modules are built.
+    api_v1.include_router(investigations.router)
+    api_v1.include_router(monitors.router)
     app.include_router(api_v1)
 
     return app

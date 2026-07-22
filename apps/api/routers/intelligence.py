@@ -1,11 +1,4 @@
-"""Purpose-built, read-only intelligence endpoints for Hermes (design doc section 21.4).
-
-Phase 3 implements the subset that depends only on relationships and
-risks: `country-brief`, `relationship-comparison`, and `risk-explanation`.
-`event-investigation`, `daily-brief`, and `scenario-simulation` depend on
-domain modules (investigations, reports, scenarios) that land in later
-phases.
-"""
+"""Purpose-built, read-only intelligence endpoints for Hermes (design doc section 21.4)."""
 
 from datetime import datetime
 from typing import Annotated
@@ -13,19 +6,33 @@ from uuid import UUID
 
 from fastapi import APIRouter, Depends
 from pydantic import BaseModel, Field
+from sqlalchemy import select
 
 from apps.api.dependencies import SessionDep, require_scopes
+from apps.api.routers.reports import ReportOut
+from apps.api.routers.scenarios import ScenarioSimulationRequest
+from mei.application.services.investigations import InvestigationService
+from mei.application.services.report_generator import ReportGenerator
 from mei.application.services.risk_engine import diff_changed_indicators
+from mei.application.services.scenario_engine import ScenarioEngine, ScenarioUpdateRecommendation
+from mei.domain.actors.models import Actor
+from mei.domain.claims.models import Claim
+from mei.domain.documents.models import Document
+from mei.domain.events.models import Event
 from mei.infrastructure.auth.principal import Principal
+from mei.infrastructure.llm.factory import get_structured_llm
+from mei.infrastructure.llm.protocol import StructuredLLM
 from mei.infrastructure.repositories.actors import ActorRepository
+from mei.infrastructure.repositories.events import EventRepository
 from mei.infrastructure.repositories.evidence import EvidenceRepository
 from mei.infrastructure.repositories.relationships import RelationshipRepository
 from mei.infrastructure.repositories.risks import RiskRepository
 from mei.shared.enums import ActorType, Scope, ScopeType, Trend
-from mei.shared.errors import NotFoundError, ValidationError
+from mei.shared.errors import LLMConfigurationError, NotFoundError, ValidationError
 from mei.shared.time import utcnow
 
 router = APIRouter(prefix="/intelligence", tags=["intelligence"])
+
 
 ReadPrincipal = Annotated[Principal, Depends(require_scopes(Scope.INTELLIGENCE_READ))]
 
@@ -379,3 +386,125 @@ async def country_brief(
         risks=risk_items,
         relationships=relationship_items,
     )
+
+
+# --- search, event-investigation, daily-brief, scenario-simulation -------------
+
+
+def _try_get_llm() -> StructuredLLM | None:
+    try:
+        return get_structured_llm()
+    except LLMConfigurationError:
+        return None
+
+
+class SearchItem(BaseModel):
+    id: UUID
+    type: str  # actor, event, claim, document
+    title: str
+    detail: str | None = None
+
+
+class IntelligenceSearchRequest(BaseModel):
+    query: str
+    limit: int = 50
+
+
+@router.post("/search", response_model=list[SearchItem])
+async def search_intelligence(
+    payload: IntelligenceSearchRequest,
+    session: SessionDep,
+    _principal: ReadPrincipal,
+) -> list[SearchItem]:
+    results: list[SearchItem] = []
+
+    # Actors
+    actor_stmt = select(Actor).where(Actor.canonical_name.ilike(f"%{payload.query}%")).limit(payload.limit)
+    actor_res = await session.execute(actor_stmt)
+    for a in actor_res.scalars():
+        results.append(SearchItem(id=a.id, type="actor", title=a.canonical_name, detail=a.description))
+
+    # Events
+    event_stmt = select(Event).where(Event.title.ilike(f"%{payload.query}%")).limit(payload.limit)
+    event_res = await session.execute(event_stmt)
+    for e in event_res.scalars():
+        results.append(SearchItem(id=e.id, type="event", title=e.title, detail=e.summary))
+
+    # Claims
+    claim_stmt = select(Claim).where(Claim.claim_text.ilike(f"%{payload.query}%")).limit(payload.limit)
+    claim_res = await session.execute(claim_stmt)
+    for c in claim_res.scalars():
+        results.append(SearchItem(id=c.id, type="claim", title=c.claim_text, detail=c.normalized_claim))
+
+    # Documents
+    doc_stmt = select(Document).where(Document.title.ilike(f"%{payload.query}%")).limit(payload.limit)
+    doc_res = await session.execute(doc_stmt)
+    for d in doc_res.scalars():
+        results.append(SearchItem(id=d.id, type="document", title=d.title, detail=d.canonical_url))
+
+    return results[:payload.limit]
+
+
+class EventInvestigationRequest(BaseModel):
+    event_id: UUID
+    priority: str = "medium"
+
+
+@router.post("/event-investigation", status_code=201)
+async def event_investigation(
+    payload: EventInvestigationRequest,
+    session: SessionDep,
+    principal: ReadPrincipal,
+) -> dict[str, object]:
+    events_repo = EventRepository(session)
+    event = await events_repo.get(payload.event_id)
+    if not event:
+        raise NotFoundError(f"Event {payload.event_id} not found")
+
+    service = InvestigationService(session)
+    investigation = await service.launch_investigation(
+        title=f"Investigation: {event.title}",
+        question=f"Analyze and verify event highlights and claims related to: {event.title}",
+        requested_by=str(principal.user_id),
+        priority=payload.priority,
+    )
+    return {
+        "investigation_id": str(investigation.id),
+        "status": investigation.status,
+        "title": investigation.title,
+    }
+
+
+@router.post("/daily-brief", response_model=ReportOut, status_code=201)
+async def daily_brief(
+    session: SessionDep,
+    principal: ReadPrincipal,
+) -> ReportOut:
+    generator = ReportGenerator(session)
+    report = await generator.generate_daily_brief(
+        llm=_try_get_llm(),
+        triggered_by=str(principal.user_id),
+    )
+    return ReportOut.from_domain(report)
+
+
+@router.post("/scenario-simulation", response_model=ScenarioUpdateRecommendation)
+async def scenario_simulation(
+    payload: ScenarioSimulationRequest,
+    session: SessionDep,
+    _principal: ReadPrincipal,
+) -> ScenarioUpdateRecommendation:
+    llm = _try_get_llm()
+    if llm is None:
+        raise LLMConfigurationError("Scenario simulation requires a configured LLM provider")
+
+    result = await ScenarioEngine(session).simulate(
+        scope_type=payload.scope_type,
+        scope_id=payload.scope_id,
+        scenario_family=payload.scenario_family,
+        time_horizon=payload.time_horizon,
+        hypothetical_context=payload.hypothetical_context,
+        llm=llm,
+    )
+    return result
+

@@ -15,6 +15,8 @@ from mei.domain.evidence import models as evidence_models
 from mei.domain.forecasts import models as forecasts_models
 from mei.domain.identity import models as identity_models
 from mei.domain.indicators import models as indicators_models
+from mei.domain.investigations import models as investigations_models
+from mei.domain.monitors import models as monitors_models
 from mei.domain.relationships import models as relationships_models
 from mei.domain.reports import models as reports_models
 from mei.domain.review import models as review_models
@@ -32,6 +34,8 @@ __all__ = [
     "forecasts_models",
     "identity_models",
     "indicators_models",
+    "investigations_models",
+    "monitors_models",
     "relationships_models",
     "reports_models",
     "review_models",
@@ -39,3 +43,4 @@ __all__ = [
     "scenarios_models",
     "sources_models",
 ]
+

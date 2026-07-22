@@ -33,6 +33,8 @@ class Settings(BaseSettings):
     jwt_access_token_ttl_seconds: int = Field(default=3600, gt=0)
 
     hermes_api_key: str = ""
+    telegram_bot_token: str = ""
+    telegram_chat_id: str = ""
 
     # Hostnames the SSRF policy in infrastructure/collection permits even
     # though they resolve to a private/loopback/link-local address (e.g. an

@@ -19,6 +19,7 @@ celery_app = Celery(
         "apps.worker.tasks.update_scenarios",
         "apps.worker.tasks.generate_reports",
         "apps.worker.tasks.dispatch_notifications",
+        "apps.worker.tasks.investigate",
     ],
 )
 
@@ -45,7 +46,9 @@ celery_app.conf.update(
         "apps.worker.tasks.update_scenarios.*": {"queue": "analysis"},
         "apps.worker.tasks.generate_reports.*": {"queue": "reporting"},
         "apps.worker.tasks.dispatch_notifications.*": {"queue": "reporting"},
+        "apps.worker.tasks.investigate.*": {"queue": "analysis"},
     },
+
 )
 
 from apps.worker import schedules  # noqa: E402
