@@ -21,6 +21,7 @@ celery_app = Celery(
         "apps.worker.tasks.dispatch_notifications",
         "apps.worker.tasks.investigate",
         "apps.worker.tasks.multi_model_review",
+        "apps.worker.tasks.imagery",
     ],
 )
 
@@ -49,6 +50,7 @@ celery_app.conf.update(
         "apps.worker.tasks.dispatch_notifications.*": {"queue": "reporting"},
         "apps.worker.tasks.investigate.*": {"queue": "analysis"},
         "apps.worker.tasks.multi_model_review.*": {"queue": "analysis"},
+        "apps.worker.tasks.imagery.*": {"queue": "extraction"},
     },
 )
 

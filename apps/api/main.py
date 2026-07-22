@@ -16,6 +16,7 @@ from apps.api.routers import (
     forecasts,
     graph,
     health,
+    imagery,
     indicators,
     intelligence,
     investigations,
@@ -85,6 +86,7 @@ def create_app() -> FastAPI:
     api_v1.include_router(graph.router)
     api_v1.include_router(analyst_assessments.router)
     api_v1.include_router(model_reviews.router)
+    api_v1.include_router(imagery.router)
     app.include_router(api_v1)
 
     return app

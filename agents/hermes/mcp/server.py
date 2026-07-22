@@ -214,6 +214,17 @@ TOOLS = [
             "required": ["job_id"]
         }
     },
+    {
+        "name": "get_imagery",
+        "description": "List submitted imagery evidence, or fetch one item by UUID.",
+        "inputSchema": {
+            "type": "object",
+            "properties": {
+                "image_id": {"type": "string", "description": "Optional UUID of a specific image; omit to list recent imagery."},
+                "verification_status": {"type": "string", "description": "Optional filter when listing."}
+            }
+        }
+    },
     # Analytical
     {
         "name": "start_event_investigation",
@@ -381,6 +392,20 @@ TOOLS = [
         }
     },
     {
+        "name": "submit_imagery",
+        "description": "Submit an image URL (satellite, photo, or screenshot) as evidence, optionally linked to a source or document; queues vision-model analysis.",
+        "inputSchema": {
+            "type": "object",
+            "properties": {
+                "image_url": {"type": "string", "description": "The URL of the image."},
+                "source_id": {"type": "string", "description": "Optional UUID of the source it came from."},
+                "document_id": {"type": "string", "description": "Optional UUID of a related document."},
+                "caption": {"type": "string", "description": "Optional caption or context."}
+            },
+            "required": ["image_url"]
+        }
+    },
+    {
         "name": "approve_event",
         "description": "Explicitly approve a candidate event (requires confirm).",
         "inputSchema": {
@@ -507,6 +532,13 @@ async def execute_tool(name: str, arguments: dict[str, Any]) -> Any:
         return await call_api("GET", "/api/v1/reports", params=params)
     elif name == "get_job_status":
         return await call_api("GET", f"/api/v1/investigations/{arguments['job_id']}")
+    elif name == "get_imagery":
+        if "image_id" in arguments:
+            return await call_api("GET", f"/api/v1/imagery/{arguments['image_id']}")
+        params = {}
+        if "verification_status" in arguments:
+            params["verification_status"] = arguments["verification_status"]
+        return await call_api("GET", "/api/v1/imagery", params=params)
 
     # Analytical Tools
     elif name == "start_event_investigation":
@@ -591,6 +623,17 @@ async def execute_tool(name: str, arguments: dict[str, Any]) -> Any:
                 "confidence": arguments.get("confidence"),
                 "rationale": arguments.get("rationale"),
                 "evidence_bundle_id": arguments.get("evidence_bundle_id"),
+            },
+        )
+    elif name == "submit_imagery":
+        return await call_api(
+            "POST",
+            "/api/v1/imagery/submit",
+            json_data={
+                "image_url": arguments["image_url"],
+                "source_id": arguments.get("source_id"),
+                "document_id": arguments.get("document_id"),
+                "caption": arguments.get("caption"),
             },
         )
     elif name == "approve_event":

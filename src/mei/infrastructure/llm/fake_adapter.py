@@ -45,5 +45,33 @@ class FakeStructuredLLM:
             )
         return result
 
+    async def generate_structured_from_image(
+        self,
+        *,
+        task_name: str,
+        prompt_version: str,
+        image_bytes: bytes,
+        content_type: str,
+        output_model: type[T],
+        metadata: dict[str, str],
+    ) -> T:
+        # Same `_responses` lookup as `generate_structured` — a fixture
+        # keyed by task_name doesn't need to know whether the real call
+        # would be text- or image-based, only what the task should return.
+        try:
+            response = self._responses[task_name]
+        except KeyError as exc:
+            raise KeyError(
+                f"FakeStructuredLLM has no response registered for task '{task_name}'"
+            ) from exc
+
+        result = response(content_type) if callable(response) else response
+        if not isinstance(result, output_model):
+            raise TypeError(
+                f"Fake response for '{task_name}' is a {type(result).__name__}, "
+                f"expected {output_model.__name__}"
+            )
+        return result
+
 
 __all__ = ["FakeStructuredLLM"]

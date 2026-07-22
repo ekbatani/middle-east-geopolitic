@@ -39,6 +39,27 @@ def build_raw_object_key(
     return f"raw/{retrieved_at:%Y/%m/%d}/{source_id}/{document_id}-{content_hash}.{extension}"
 
 
+def build_imagery_object_key(
+    *,
+    source_id: UUID | None,
+    image_id: UUID,
+    content_hash: str,
+    extension: str,
+    retrieved_at: datetime,
+) -> str:
+    """Object key layout for imagery evidence (design doc section 35, Phase
+    6 "imagery evidence") — a separate `imagery/` prefix (not `raw/...`) so
+    it never collides with `build_raw_object_key`'s document layout, even
+    though both share the same bucket. `source_id` is optional on
+    `ImageEvidence` (imagery doesn't always come from a registered source),
+    so an unattributed submission still gets a stable key.
+
+    imagery/{yyyy}/{mm}/{dd}/{source_id}/{image_id}-{sha256}.{ext}
+    """
+    source_segment = str(source_id) if source_id is not None else "unattributed"
+    return f"imagery/{retrieved_at:%Y/%m/%d}/{source_segment}/{image_id}-{content_hash}.{extension}"
+
+
 class ObjectStorage:
     """Thin async wrapper around the S3-compatible (MinIO) client.
 
@@ -75,4 +96,4 @@ class ObjectStorage:
         return body
 
 
-__all__ = ["ObjectStorage", "build_raw_object_key"]
+__all__ = ["ObjectStorage", "build_imagery_object_key", "build_raw_object_key"]

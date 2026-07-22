@@ -1,3 +1,4 @@
+import base64
 from typing import TypeVar
 
 from openai import AsyncOpenAI
@@ -40,6 +41,41 @@ class OpenAIStructuredLLM:
             messages=[
                 {"role": "system", "content": system_prompt},
                 {"role": "user", "content": input_text},
+            ],
+            response_format=output_model,
+        )
+        parsed = completion.choices[0].message.parsed
+        if parsed is None:
+            raise LLMOutputError(
+                f"{task_name}/{prompt_version} produced no valid structured output"
+            )
+        return parsed
+
+    async def generate_structured_from_image(
+        self,
+        *,
+        task_name: str,
+        prompt_version: str,
+        image_bytes: bytes,
+        content_type: str,
+        output_model: type[T],
+        metadata: dict[str, str],
+    ) -> T:
+        system_prompt = load_prompt(task_name, prompt_version)
+        encoded = base64.b64encode(image_bytes).decode("ascii")
+        completion = await self._client.beta.chat.completions.parse(
+            model=self._model,
+            messages=[
+                {"role": "system", "content": system_prompt},
+                {
+                    "role": "user",
+                    "content": [
+                        {
+                            "type": "image_url",
+                            "image_url": {"url": f"data:{content_type};base64,{encoded}"},
+                        }
+                    ],
+                },
             ],
             response_format=output_model,
         )

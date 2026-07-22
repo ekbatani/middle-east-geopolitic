@@ -4,6 +4,7 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from mei.domain.evidence.models import EvidenceBundle, EvidenceBundleItem
+from mei.domain.imagery.models import EvidenceBundleImageryItem
 
 
 class EvidenceRepository:
@@ -34,6 +35,24 @@ class EvidenceRepository:
     ) -> EvidenceBundleItem:
         item = EvidenceBundleItem(
             bundle_id=bundle_id, claim_evidence_id=claim_evidence_id, weight=weight
+        )
+        self._session.add(item)
+        await self._session.flush()
+        return item
+
+    async def list_bundle_imagery_ids(self, bundle_id: UUID) -> list[UUID]:
+        result = await self._session.execute(
+            select(EvidenceBundleImageryItem.image_evidence_id).where(
+                EvidenceBundleImageryItem.bundle_id == bundle_id
+            )
+        )
+        return list(result.scalars())
+
+    async def add_imagery_item(
+        self, *, bundle_id: UUID, image_evidence_id: UUID, weight: float = 1.0
+    ) -> EvidenceBundleImageryItem:
+        item = EvidenceBundleImageryItem(
+            bundle_id=bundle_id, image_evidence_id=image_evidence_id, weight=weight
         )
         self._session.add(item)
         await self._session.flush()
