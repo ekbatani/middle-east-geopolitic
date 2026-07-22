@@ -77,7 +77,9 @@ class MultiModelReviewService:
             persist=False,
         )
 
-        agreement = classify_agreement(primary.final_score, secondary.final_score, agreement_tolerance)
+        agreement = classify_agreement(
+            primary.final_score, secondary.final_score, agreement_tolerance
+        )
         agreement_delta = abs(primary.final_score - secondary.final_score)
 
         return await self._reviews.create(

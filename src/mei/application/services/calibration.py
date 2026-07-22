@@ -43,7 +43,9 @@ class CalibrationReport(TypedDict):
     buckets: list[CalibrationBucket]
 
 
-def bucket_forecasts(samples: list[ForecastSample], bucket_count: int = 10) -> list[CalibrationBucket]:
+def bucket_forecasts(
+    samples: list[ForecastSample], bucket_count: int = 10
+) -> list[CalibrationBucket]:
     """Partition `[0, 1]` into `bucket_count` equal-width buckets and place
     each resolved, binary-outcome forecast into the one its predicted
     probability falls in.
@@ -94,7 +96,9 @@ def bucket_forecasts(samples: list[ForecastSample], bucket_count: int = 10) -> l
     return buckets
 
 
-def _issued_between(forecast: ForecastRecord, since: datetime | None, until: datetime | None) -> bool:
+def _issued_between(
+    forecast: ForecastRecord, since: datetime | None, until: datetime | None
+) -> bool:
     if since is not None and forecast.issued_at < since:
         return False
     return not (until is not None and forecast.issued_at > until)

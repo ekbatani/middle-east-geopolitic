@@ -126,7 +126,9 @@ async def test_submit_image_dedupes_by_content_hash(session: AsyncSession) -> No
     service = ImageryIngestionService(session)
 
     first = await service.submit_image(image_url="https://example.com/photo-a.jpg", caption="First")
-    second = await service.submit_image(image_url="https://example.com/photo-b.jpg", caption="Second")
+    second = await service.submit_image(
+        image_url="https://example.com/photo-b.jpg", caption="Second"
+    )
     await session.commit()
 
     assert second.id == first.id  # same bytes -> same content hash -> dedup
@@ -147,7 +149,9 @@ async def test_submit_image_archives_bytes_to_object_storage(session: AsyncSessi
     assert key.startswith("imagery/")
 
 
-async def test_analyze_image_updates_analysis_and_verification_status(session: AsyncSession) -> None:
+async def test_analyze_image_updates_analysis_and_verification_status(
+    session: AsyncSession,
+) -> None:
     image = await ImageryIngestionService(session).submit_image(
         image_url="https://example.com/photo-unique-2.jpg"
     )

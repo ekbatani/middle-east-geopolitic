@@ -446,7 +446,9 @@ def diff_changed_indicators(
     always reflects the two specific assessments being compared."""
     if not previous:
         return [
-            str(_field(record, "indicator_code")) for record in current if _field(record, "included")
+            str(_field(record, "indicator_code"))
+            for record in current
+            if _field(record, "included")
         ]
 
     previous_by_code: dict[str, object] = {}

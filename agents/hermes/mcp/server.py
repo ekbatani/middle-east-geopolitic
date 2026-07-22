@@ -23,6 +23,7 @@ HERMES_API_KEY = os.environ.get("HERMES_API_KEY", "")
 if not HERMES_API_KEY:
     try:
         from mei.shared.config import get_settings
+
         settings = get_settings()
         HERMES_API_KEY = settings.hermes_api_key
     except Exception:
@@ -67,21 +68,23 @@ TOOLS = [
             "type": "object",
             "properties": {
                 "query": {"type": "string", "description": "The search term or query."},
-                "limit": {"type": "integer", "description": "Maximum number of results to return.", "default": 50}
+                "limit": {
+                    "type": "integer",
+                    "description": "Maximum number of results to return.",
+                    "default": 50,
+                },
             },
-            "required": ["query"]
-        }
+            "required": ["query"],
+        },
     },
     {
         "name": "get_actor_profile",
         "description": "Fetch detailed profile for a given actor by UUID.",
         "inputSchema": {
             "type": "object",
-            "properties": {
-                "actor_id": {"type": "string", "description": "The UUID of the actor."}
-            },
-            "required": ["actor_id"]
-        }
+            "properties": {"actor_id": {"type": "string", "description": "The UUID of the actor."}},
+            "required": ["actor_id"],
+        },
     },
     {
         "name": "get_country_profile",
@@ -89,22 +92,23 @@ TOOLS = [
         "inputSchema": {
             "type": "object",
             "properties": {
-                "country_actor_id": {"type": "string", "description": "The UUID of the country actor."},
-                "as_of": {"type": "string", "description": "Optional ISO timestamp boundary."}
+                "country_actor_id": {
+                    "type": "string",
+                    "description": "The UUID of the country actor.",
+                },
+                "as_of": {"type": "string", "description": "Optional ISO timestamp boundary."},
             },
-            "required": ["country_actor_id"]
-        }
+            "required": ["country_actor_id"],
+        },
     },
     {
         "name": "get_event",
         "description": "Retrieve detailed information about a specific event by UUID.",
         "inputSchema": {
             "type": "object",
-            "properties": {
-                "event_id": {"type": "string", "description": "The UUID of the event."}
-            },
-            "required": ["event_id"]
-        }
+            "properties": {"event_id": {"type": "string", "description": "The UUID of the event."}},
+            "required": ["event_id"],
+        },
     },
     {
         "name": "search_events",
@@ -112,21 +116,22 @@ TOOLS = [
         "inputSchema": {
             "type": "object",
             "properties": {
-                "lifecycle_status": {"type": "string", "description": "Filter by status: e.g., approved, extracted."},
-                "limit": {"type": "integer", "description": "Limit results."}
-            }
-        }
+                "lifecycle_status": {
+                    "type": "string",
+                    "description": "Filter by status: e.g., approved, extracted.",
+                },
+                "limit": {"type": "integer", "description": "Limit results."},
+            },
+        },
     },
     {
         "name": "get_claim_evidence",
         "description": "Retrieve supporting and contradictory evidence for a claim by UUID.",
         "inputSchema": {
             "type": "object",
-            "properties": {
-                "claim_id": {"type": "string", "description": "The UUID of the claim."}
-            },
-            "required": ["claim_id"]
-        }
+            "properties": {"claim_id": {"type": "string", "description": "The UUID of the claim."}},
+            "required": ["claim_id"],
+        },
     },
     {
         "name": "get_relationship",
@@ -134,10 +139,13 @@ TOOLS = [
         "inputSchema": {
             "type": "object",
             "properties": {
-                "relationship_id": {"type": "string", "description": "The UUID of the relationship."}
+                "relationship_id": {
+                    "type": "string",
+                    "description": "The UUID of the relationship.",
+                }
             },
-            "required": ["relationship_id"]
-        }
+            "required": ["relationship_id"],
+        },
     },
     {
         "name": "compare_relationships",
@@ -148,12 +156,12 @@ TOOLS = [
                 "relationship_ids": {
                     "type": "array",
                     "items": {"type": "string"},
-                    "description": "List of relationship UUIDs."
+                    "description": "List of relationship UUIDs.",
                 },
-                "as_of": {"type": "string", "description": "Optional ISO timestamp."}
+                "as_of": {"type": "string", "description": "Optional ISO timestamp."},
             },
-            "required": ["relationship_ids"]
-        }
+            "required": ["relationship_ids"],
+        },
     },
     {
         "name": "get_risk_scores",
@@ -161,12 +169,18 @@ TOOLS = [
         "inputSchema": {
             "type": "object",
             "properties": {
-                "risk_definition_id": {"type": "string", "description": "The UUID of the risk definition."},
-                "scope_type": {"type": "string", "description": "Scope type: country, relationship, conflict, global."},
-                "scope_id": {"type": "string", "description": "Optional scope UUID."}
+                "risk_definition_id": {
+                    "type": "string",
+                    "description": "The UUID of the risk definition.",
+                },
+                "scope_type": {
+                    "type": "string",
+                    "description": "Scope type: country, relationship, conflict, global.",
+                },
+                "scope_id": {"type": "string", "description": "Optional scope UUID."},
             },
-            "required": ["risk_definition_id", "scope_type"]
-        }
+            "required": ["risk_definition_id", "scope_type"],
+        },
     },
     {
         "name": "explain_risk_change",
@@ -174,12 +188,18 @@ TOOLS = [
         "inputSchema": {
             "type": "object",
             "properties": {
-                "risk_definition_id": {"type": "string", "description": "The UUID of the risk definition."},
-                "scope_type": {"type": "string", "description": "Scope type: country, relationship, conflict, global."},
-                "scope_id": {"type": "string", "description": "Optional scope UUID."}
+                "risk_definition_id": {
+                    "type": "string",
+                    "description": "The UUID of the risk definition.",
+                },
+                "scope_type": {
+                    "type": "string",
+                    "description": "Scope type: country, relationship, conflict, global.",
+                },
+                "scope_id": {"type": "string", "description": "Optional scope UUID."},
             },
-            "required": ["risk_definition_id", "scope_type"]
-        }
+            "required": ["risk_definition_id", "scope_type"],
+        },
     },
     {
         "name": "get_active_scenarios",
@@ -188,9 +208,9 @@ TOOLS = [
             "type": "object",
             "properties": {
                 "scope_type": {"type": "string", "description": "Optional scope type filter."},
-                "scope_id": {"type": "string", "description": "Optional scope UUID filter."}
-            }
-        }
+                "scope_id": {"type": "string", "description": "Optional scope UUID filter."},
+            },
+        },
     },
     {
         "name": "get_latest_report",
@@ -198,10 +218,13 @@ TOOLS = [
         "inputSchema": {
             "type": "object",
             "properties": {
-                "report_type": {"type": "string", "description": "Report type: daily_brief, weekly_outlook, country_brief, conflict_brief."}
+                "report_type": {
+                    "type": "string",
+                    "description": "Report type: daily_brief, weekly_outlook, country_brief, conflict_brief.",
+                }
             },
-            "required": ["report_type"]
-        }
+            "required": ["report_type"],
+        },
     },
     {
         "name": "get_job_status",
@@ -211,8 +234,8 @@ TOOLS = [
             "properties": {
                 "job_id": {"type": "string", "description": "The UUID of the investigation."}
             },
-            "required": ["job_id"]
-        }
+            "required": ["job_id"],
+        },
     },
     {
         "name": "get_imagery",
@@ -220,10 +243,16 @@ TOOLS = [
         "inputSchema": {
             "type": "object",
             "properties": {
-                "image_id": {"type": "string", "description": "Optional UUID of a specific image; omit to list recent imagery."},
-                "verification_status": {"type": "string", "description": "Optional filter when listing."}
-            }
-        }
+                "image_id": {
+                    "type": "string",
+                    "description": "Optional UUID of a specific image; omit to list recent imagery.",
+                },
+                "verification_status": {
+                    "type": "string",
+                    "description": "Optional filter when listing.",
+                },
+            },
+        },
     },
     # Analytical
     {
@@ -233,10 +262,13 @@ TOOLS = [
             "type": "object",
             "properties": {
                 "event_id": {"type": "string", "description": "The UUID of the event."},
-                "priority": {"type": "string", "description": "Priority: low, medium, high. Default is medium."}
+                "priority": {
+                    "type": "string",
+                    "description": "Priority: low, medium, high. Default is medium.",
+                },
             },
-            "required": ["event_id"]
-        }
+            "required": ["event_id"],
+        },
     },
     {
         "name": "compare_source_narratives",
@@ -246,8 +278,8 @@ TOOLS = [
             "properties": {
                 "query": {"type": "string", "description": "Query term to compare narratives."}
             },
-            "required": ["query"]
-        }
+            "required": ["query"],
+        },
     },
     {
         "name": "generate_country_brief",
@@ -255,11 +287,14 @@ TOOLS = [
         "inputSchema": {
             "type": "object",
             "properties": {
-                "country_actor_id": {"type": "string", "description": "The UUID of the country actor."},
-                "as_of": {"type": "string", "description": "Optional ISO timestamp."}
+                "country_actor_id": {
+                    "type": "string",
+                    "description": "The UUID of the country actor.",
+                },
+                "as_of": {"type": "string", "description": "Optional ISO timestamp."},
             },
-            "required": ["country_actor_id"]
-        }
+            "required": ["country_actor_id"],
+        },
     },
     {
         "name": "generate_conflict_brief",
@@ -267,26 +302,24 @@ TOOLS = [
         "inputSchema": {
             "type": "object",
             "properties": {
-                "relationship_ids": {"type": "array", "items": {"type": "string"}, "description": "List of relationship UUIDs."}
+                "relationship_ids": {
+                    "type": "array",
+                    "items": {"type": "string"},
+                    "description": "List of relationship UUIDs.",
+                }
             },
-            "required": ["relationship_ids"]
-        }
+            "required": ["relationship_ids"],
+        },
     },
     {
         "name": "generate_daily_brief",
         "description": "Trigger the generation of the platform daily brief.",
-        "inputSchema": {
-            "type": "object",
-            "properties": {}
-        }
+        "inputSchema": {"type": "object", "properties": {}},
     },
     {
         "name": "generate_weekly_outlook",
         "description": "Trigger generation of the weekly outlook brief.",
-        "inputSchema": {
-            "type": "object",
-            "properties": {}
-        }
+        "inputSchema": {"type": "object", "properties": {}},
     },
     {
         "name": "simulate_scenario",
@@ -294,14 +327,23 @@ TOOLS = [
         "inputSchema": {
             "type": "object",
             "properties": {
-                "scope_type": {"type": "string", "description": "Scope type: country, relationship, conflict, global."},
+                "scope_type": {
+                    "type": "string",
+                    "description": "Scope type: country, relationship, conflict, global.",
+                },
                 "scope_id": {"type": "string", "description": "Optional scope UUID."},
-                "scenario_family": {"type": "string", "description": "controlled_deescalation, managed_confrontation, regional_escalation, systemic_regional_war."},
+                "scenario_family": {
+                    "type": "string",
+                    "description": "controlled_deescalation, managed_confrontation, regional_escalation, systemic_regional_war.",
+                },
                 "time_horizon": {"type": "string", "description": "e.g., 3 months, 6 months."},
-                "hypothetical_context": {"type": "string", "description": "Hypothetical event or development context."}
+                "hypothetical_context": {
+                    "type": "string",
+                    "description": "Hypothetical event or development context.",
+                },
             },
-            "required": ["scope_type", "scenario_family", "time_horizon", "hypothetical_context"]
-        }
+            "required": ["scope_type", "scenario_family", "time_horizon", "hypothetical_context"],
+        },
     },
     {
         "name": "get_actor_centrality",
@@ -309,9 +351,12 @@ TOOLS = [
         "inputSchema": {
             "type": "object",
             "properties": {
-                "relationship_status": {"type": "string", "description": "Filter relationships by status: active, dormant, ended. Default is active."}
-            }
-        }
+                "relationship_status": {
+                    "type": "string",
+                    "description": "Filter relationships by status: active, dormant, ended. Default is active.",
+                }
+            },
+        },
     },
     {
         "name": "find_actor_path",
@@ -319,12 +364,21 @@ TOOLS = [
         "inputSchema": {
             "type": "object",
             "properties": {
-                "source_actor_id": {"type": "string", "description": "The UUID of the source actor."},
-                "target_actor_id": {"type": "string", "description": "The UUID of the target actor."},
-                "relationship_status": {"type": "string", "description": "Filter relationships by status: active, dormant, ended. Default is active."}
+                "source_actor_id": {
+                    "type": "string",
+                    "description": "The UUID of the source actor.",
+                },
+                "target_actor_id": {
+                    "type": "string",
+                    "description": "The UUID of the target actor.",
+                },
+                "relationship_status": {
+                    "type": "string",
+                    "description": "Filter relationships by status: active, dormant, ended. Default is active.",
+                },
             },
-            "required": ["source_actor_id", "target_actor_id"]
-        }
+            "required": ["source_actor_id", "target_actor_id"],
+        },
     },
     {
         "name": "list_disagreements",
@@ -332,9 +386,12 @@ TOOLS = [
         "inputSchema": {
             "type": "object",
             "properties": {
-                "subject_type": {"type": "string", "description": "Optional filter: claim, event, risk_assessment, relationship_observation."}
-            }
-        }
+                "subject_type": {
+                    "type": "string",
+                    "description": "Optional filter: claim, event, risk_assessment, relationship_observation.",
+                }
+            },
+        },
     },
     {
         "name": "get_model_review_results",
@@ -342,9 +399,12 @@ TOOLS = [
         "inputSchema": {
             "type": "object",
             "properties": {
-                "agreement": {"type": "boolean", "description": "Optional filter: true for agreements only, false for disagreements only."}
-            }
-        }
+                "agreement": {
+                    "type": "boolean",
+                    "description": "Optional filter: true for agreements only, false for disagreements only.",
+                }
+            },
+        },
     },
     # Write
     {
@@ -354,10 +414,10 @@ TOOLS = [
             "type": "object",
             "properties": {
                 "url": {"type": "string", "description": "The URL of the source document."},
-                "title": {"type": "string", "description": "Optional title for the document."}
+                "title": {"type": "string", "description": "Optional title for the document."},
             },
-            "required": ["url"]
-        }
+            "required": ["url"],
+        },
     },
     {
         "name": "add_analyst_note",
@@ -366,13 +426,22 @@ TOOLS = [
             "type": "object",
             "properties": {
                 "claim_id": {"type": "string", "description": "The claim UUID."},
-                "document_id": {"type": "string", "description": "The UUID of the document the evidence excerpt comes from."},
-                "stance": {"type": "string", "description": "Stance: supports, contradicts, partially_supports, contextualizes, repeats."},
+                "document_id": {
+                    "type": "string",
+                    "description": "The UUID of the document the evidence excerpt comes from.",
+                },
+                "stance": {
+                    "type": "string",
+                    "description": "Stance: supports, contradicts, partially_supports, contextualizes, repeats.",
+                },
                 "excerpt": {"type": "string", "description": "Evidence text excerpt."},
-                "analyst_note": {"type": "string", "description": "Optional free-text analyst commentary."}
+                "analyst_note": {
+                    "type": "string",
+                    "description": "Optional free-text analyst commentary.",
+                },
             },
-            "required": ["claim_id", "document_id", "stance", "excerpt"]
-        }
+            "required": ["claim_id", "document_id", "stance", "excerpt"],
+        },
     },
     {
         "name": "record_analyst_position",
@@ -380,16 +449,31 @@ TOOLS = [
         "inputSchema": {
             "type": "object",
             "properties": {
-                "subject_type": {"type": "string", "description": "claim, event, risk_assessment, or relationship_observation."},
-                "subject_id": {"type": "string", "description": "The UUID of the subject being assessed."},
-                "stance": {"type": "string", "description": "Free-text coarse stance, e.g. agree, disagree, uncertain."},
+                "subject_type": {
+                    "type": "string",
+                    "description": "claim, event, risk_assessment, or relationship_observation.",
+                },
+                "subject_id": {
+                    "type": "string",
+                    "description": "The UUID of the subject being assessed.",
+                },
+                "stance": {
+                    "type": "string",
+                    "description": "Free-text coarse stance, e.g. agree, disagree, uncertain.",
+                },
                 "score": {"type": "number", "description": "Optional numeric estimate, 0-100."},
                 "confidence": {"type": "number", "description": "Optional confidence, 0-1."},
-                "rationale": {"type": "string", "description": "Free-text justification for the position."},
-                "evidence_bundle_id": {"type": "string", "description": "Optional UUID of a supporting evidence bundle."}
+                "rationale": {
+                    "type": "string",
+                    "description": "Free-text justification for the position.",
+                },
+                "evidence_bundle_id": {
+                    "type": "string",
+                    "description": "Optional UUID of a supporting evidence bundle.",
+                },
             },
-            "required": ["subject_type", "subject_id"]
-        }
+            "required": ["subject_type", "subject_id"],
+        },
     },
     {
         "name": "submit_imagery",
@@ -398,34 +482,36 @@ TOOLS = [
             "type": "object",
             "properties": {
                 "image_url": {"type": "string", "description": "The URL of the image."},
-                "source_id": {"type": "string", "description": "Optional UUID of the source it came from."},
-                "document_id": {"type": "string", "description": "Optional UUID of a related document."},
-                "caption": {"type": "string", "description": "Optional caption or context."}
+                "source_id": {
+                    "type": "string",
+                    "description": "Optional UUID of the source it came from.",
+                },
+                "document_id": {
+                    "type": "string",
+                    "description": "Optional UUID of a related document.",
+                },
+                "caption": {"type": "string", "description": "Optional caption or context."},
             },
-            "required": ["image_url"]
-        }
+            "required": ["image_url"],
+        },
     },
     {
         "name": "approve_event",
         "description": "Explicitly approve a candidate event (requires confirm).",
         "inputSchema": {
             "type": "object",
-            "properties": {
-                "event_id": {"type": "string", "description": "The UUID of the event."}
-            },
-            "required": ["event_id"]
-        }
+            "properties": {"event_id": {"type": "string", "description": "The UUID of the event."}},
+            "required": ["event_id"],
+        },
     },
     {
         "name": "reject_event",
         "description": "Explicitly reject a candidate event (requires confirm).",
         "inputSchema": {
             "type": "object",
-            "properties": {
-                "event_id": {"type": "string", "description": "The UUID of the event."}
-            },
-            "required": ["event_id"]
-        }
+            "properties": {"event_id": {"type": "string", "description": "The UUID of the event."}},
+            "required": ["event_id"],
+        },
     },
     {
         "name": "approve_report",
@@ -435,8 +521,8 @@ TOOLS = [
             "properties": {
                 "report_id": {"type": "string", "description": "The UUID of the report."}
             },
-            "required": ["report_id"]
-        }
+            "required": ["report_id"],
+        },
     },
     {
         "name": "create_monitor",
@@ -445,12 +531,18 @@ TOOLS = [
             "type": "object",
             "properties": {
                 "name": {"type": "string", "description": "Descriptive name."},
-                "monitor_type": {"type": "string", "description": "relationship_threshold, country_risk."},
+                "monitor_type": {
+                    "type": "string",
+                    "description": "relationship_threshold, country_risk.",
+                },
                 "condition_json": {"type": "object", "description": "JSON condition details."},
-                "delivery_channel": {"type": "string", "description": "telegram or email. Default is telegram."}
+                "delivery_channel": {
+                    "type": "string",
+                    "description": "telegram or email. Default is telegram.",
+                },
             },
-            "required": ["name", "monitor_type", "condition_json"]
-        }
+            "required": ["name", "monitor_type", "condition_json"],
+        },
     },
     {
         "name": "update_monitor",
@@ -459,10 +551,10 @@ TOOLS = [
             "type": "object",
             "properties": {
                 "monitor_id": {"type": "string", "description": "The UUID of the monitor."},
-                "enabled": {"type": "boolean", "description": "Enable or disable."}
+                "enabled": {"type": "boolean", "description": "Enable or disable."},
             },
-            "required": ["monitor_id"]
-        }
+            "required": ["monitor_id"],
+        },
     },
     {
         "name": "cancel_monitor",
@@ -472,20 +564,31 @@ TOOLS = [
             "properties": {
                 "monitor_id": {"type": "string", "description": "The UUID of the monitor."}
             },
-            "required": ["monitor_id"]
-        }
-    }
+            "required": ["monitor_id"],
+        },
+    },
 ]
 
 
 async def execute_tool(name: str, arguments: dict[str, Any]) -> Any:
     # Read Tools
     if name == "search_intelligence":
-        return await call_api("POST", "/api/v1/intelligence/search", json_data={"query": arguments["query"], "limit": arguments.get("limit", 50)})
+        return await call_api(
+            "POST",
+            "/api/v1/intelligence/search",
+            json_data={"query": arguments["query"], "limit": arguments.get("limit", 50)},
+        )
     elif name == "get_actor_profile":
         return await call_api("GET", f"/api/v1/actors/{arguments['actor_id']}")
     elif name == "get_country_profile":
-        return await call_api("POST", "/api/v1/intelligence/country-brief", json_data={"country_actor_id": arguments["country_actor_id"], "as_of": arguments.get("as_of")})
+        return await call_api(
+            "POST",
+            "/api/v1/intelligence/country-brief",
+            json_data={
+                "country_actor_id": arguments["country_actor_id"],
+                "as_of": arguments.get("as_of"),
+            },
+        )
     elif name == "get_event":
         return await call_api("GET", f"/api/v1/events/{arguments['event_id']}")
     elif name == "search_events":
@@ -542,11 +645,27 @@ async def execute_tool(name: str, arguments: dict[str, Any]) -> Any:
 
     # Analytical Tools
     elif name == "start_event_investigation":
-        return await call_api("POST", "/api/v1/intelligence/event-investigation", json_data={"event_id": arguments["event_id"], "priority": arguments.get("priority", "medium")})
+        return await call_api(
+            "POST",
+            "/api/v1/intelligence/event-investigation",
+            json_data={
+                "event_id": arguments["event_id"],
+                "priority": arguments.get("priority", "medium"),
+            },
+        )
     elif name == "compare_source_narratives":
-        return await call_api("POST", "/api/v1/intelligence/search", json_data={"query": arguments["query"]})
+        return await call_api(
+            "POST", "/api/v1/intelligence/search", json_data={"query": arguments["query"]}
+        )
     elif name == "generate_country_brief":
-        return await call_api("POST", "/api/v1/intelligence/country-brief", json_data={"country_actor_id": arguments["country_actor_id"], "as_of": arguments.get("as_of")})
+        return await call_api(
+            "POST",
+            "/api/v1/intelligence/country-brief",
+            json_data={
+                "country_actor_id": arguments["country_actor_id"],
+                "as_of": arguments.get("as_of"),
+            },
+        )
     elif name == "generate_conflict_brief":
         return await call_api(
             "POST",
@@ -559,7 +678,9 @@ async def execute_tool(name: str, arguments: dict[str, Any]) -> Any:
     elif name == "generate_daily_brief":
         return await call_api("POST", "/api/v1/intelligence/daily-brief", json_data={})
     elif name == "generate_weekly_outlook":
-        return await call_api("POST", "/api/v1/reports/generate", json_data={"report_type": "weekly_outlook"})
+        return await call_api(
+            "POST", "/api/v1/reports/generate", json_data={"report_type": "weekly_outlook"}
+        )
     elif name == "simulate_scenario":
         return await call_api(
             "POST",
@@ -599,7 +720,11 @@ async def execute_tool(name: str, arguments: dict[str, Any]) -> Any:
 
     # Controlled Write Tools
     elif name == "submit_source":
-        return await call_api("POST", "/api/v1/sources/submit", json_data={"url": arguments["url"], "title": arguments.get("title")})
+        return await call_api(
+            "POST",
+            "/api/v1/sources/submit",
+            json_data={"url": arguments["url"], "title": arguments.get("title")},
+        )
     elif name == "add_analyst_note":
         return await call_api(
             "POST",
@@ -654,7 +779,11 @@ async def execute_tool(name: str, arguments: dict[str, Any]) -> Any:
             },
         )
     elif name == "update_monitor":
-        return await call_api("PATCH", f"/api/v1/monitors/{arguments['monitor_id']}", json_data={"enabled": arguments["enabled"]})
+        return await call_api(
+            "PATCH",
+            f"/api/v1/monitors/{arguments['monitor_id']}",
+            json_data={"enabled": arguments["enabled"]},
+        )
     elif name == "cancel_monitor":
         return await call_api("DELETE", f"/api/v1/monitors/{arguments['monitor_id']}")
 

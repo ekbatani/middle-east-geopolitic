@@ -171,7 +171,9 @@ async def test_review_risk_assessment_records_disagreement_with_secondary_model(
 
     # The shadow rerun must not have created a second persisted RiskAssessment.
     history = await RiskRepository(session).list_history(
-        risk_definition_id=definition.id, scope_type=ScopeType.RELATIONSHIP, scope_id=relationship.id
+        risk_definition_id=definition.id,
+        scope_type=ScopeType.RELATIONSHIP,
+        scope_id=relationship.id,
     )
     assert len(history) == 1
 

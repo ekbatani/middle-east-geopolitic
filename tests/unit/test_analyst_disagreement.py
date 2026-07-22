@@ -32,7 +32,10 @@ def test_all_none_stances_and_scores_is_not_disagreement() -> None:
     assert classify_disagreement([None, None], [None, None]) is False
 
 
-@given(stance=st.sampled_from(["agree", "disagree", "uncertain"]), count=st.integers(min_value=1, max_value=10))
+@given(
+    stance=st.sampled_from(["agree", "disagree", "uncertain"]),
+    count=st.integers(min_value=1, max_value=10),
+)
 def test_unanimous_stance_never_flags_regardless_of_count(stance: str, count: int) -> None:
     assert classify_disagreement([stance] * count, [None] * count) is False
 

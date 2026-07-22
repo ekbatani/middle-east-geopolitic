@@ -125,7 +125,9 @@ async def get_snapshot(
         relationship_status=relationship_status
     )
     nodes = [
-        GraphNodeOut(id=node_id, canonical_name=data["canonical_name"], actor_type=data["actor_type"])
+        GraphNodeOut(
+            id=node_id, canonical_name=data["canonical_name"], actor_type=data["actor_type"]
+        )
         for node_id, data in graph.nodes(data=True)
     ]
     edges = [

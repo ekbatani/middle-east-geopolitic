@@ -52,10 +52,16 @@ def upgrade() -> None:
         sa.PrimaryKeyConstraint("id", name=op.f("pk_analyst_assessments")),
     )
     op.create_index(
-        op.f("ix_analyst_assessments_subject_type"), "analyst_assessments", ["subject_type"], unique=False
+        op.f("ix_analyst_assessments_subject_type"),
+        "analyst_assessments",
+        ["subject_type"],
+        unique=False,
     )
     op.create_index(
-        op.f("ix_analyst_assessments_subject_id"), "analyst_assessments", ["subject_id"], unique=False
+        op.f("ix_analyst_assessments_subject_id"),
+        "analyst_assessments",
+        ["subject_id"],
+        unique=False,
     )
     op.create_index(
         "uq_analyst_assessments_subject_analyst",
@@ -84,10 +90,16 @@ def upgrade() -> None:
         sa.PrimaryKeyConstraint("id", name=op.f("pk_model_review_results")),
     )
     op.create_index(
-        op.f("ix_model_review_results_subject_type"), "model_review_results", ["subject_type"], unique=False
+        op.f("ix_model_review_results_subject_type"),
+        "model_review_results",
+        ["subject_type"],
+        unique=False,
     )
     op.create_index(
-        op.f("ix_model_review_results_subject_id"), "model_review_results", ["subject_id"], unique=False
+        op.f("ix_model_review_results_subject_id"),
+        "model_review_results",
+        ["subject_id"],
+        unique=False,
     )
 
     # --- Imagery evidence (design doc section 35: imagery evidence) --------
@@ -113,7 +125,10 @@ def upgrade() -> None:
         sa.Column("submitted_by_type", sa.String(length=20), nullable=False),
         sa.Column("submitted_by_id", sa.String(length=200), nullable=True),
         sa.ForeignKeyConstraint(
-            ["source_id"], ["sources.id"], name=op.f("fk_image_evidence_source_id_sources"), ondelete="SET NULL"
+            ["source_id"],
+            ["sources.id"],
+            name=op.f("fk_image_evidence_source_id_sources"),
+            ondelete="SET NULL",
         ),
         sa.ForeignKeyConstraint(
             ["document_id"],

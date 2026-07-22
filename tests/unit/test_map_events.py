@@ -12,7 +12,9 @@ from mei.shared.errors import ValidationError
     max_lon=st.floats(min_value=-180, max_value=180, allow_nan=False),
     max_lat=st.floats(min_value=-90, max_value=90, allow_nan=False),
 )
-def test_parse_bbox_round_trips(min_lon: float, min_lat: float, max_lon: float, max_lat: float) -> None:
+def test_parse_bbox_round_trips(
+    min_lon: float, min_lat: float, max_lon: float, max_lat: float
+) -> None:
     value = f"{min_lon},{min_lat},{max_lon},{max_lat}"
     assert parse_bbox(value) == (min_lon, min_lat, max_lon, max_lat)
 

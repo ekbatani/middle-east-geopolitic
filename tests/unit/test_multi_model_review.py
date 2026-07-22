@@ -40,7 +40,9 @@ def test_disagreement_beyond_tolerance() -> None:
     previous_score=st.integers(min_value=0, max_value=100),
     threshold=st.integers(min_value=1, max_value=100),
 )
-def test_trigger_is_monotonic_in_delta_magnitude(final_score: int, previous_score: int, threshold: int) -> None:
+def test_trigger_is_monotonic_in_delta_magnitude(
+    final_score: int, previous_score: int, threshold: int
+) -> None:
     delta = abs(final_score - previous_score)
     triggered = should_trigger_for_risk(final_score, previous_score, threshold)
     assert (triggered == "score_delta") == (delta >= threshold)

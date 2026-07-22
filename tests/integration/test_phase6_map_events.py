@@ -80,7 +80,9 @@ async def test_list_for_map_excludes_events_without_a_location(session: AsyncSes
     )
     await repo.add_location(event_id=geolocated.id, name="Test City", latitude=33.5, longitude=36.3)
 
-    await repo.create(event_type="missile_strike", title="No-location event", started_at=now, severity=7)
+    await repo.create(
+        event_type="missile_strike", title="No-location event", started_at=now, severity=7
+    )
     await session.commit()
 
     results = await repo.list_for_map()
@@ -89,14 +91,20 @@ async def test_list_for_map_excludes_events_without_a_location(session: AsyncSes
     assert len(results) == 1
 
 
-async def test_list_for_map_bbox_filters_out_locations_outside_the_box(session: AsyncSession) -> None:
+async def test_list_for_map_bbox_filters_out_locations_outside_the_box(
+    session: AsyncSession,
+) -> None:
     repo = EventRepository(session)
     now = datetime(2026, 6, 1, tzinfo=UTC)
 
-    inside = await repo.create(event_type="protest", title="Inside bbox", started_at=now, severity=3)
+    inside = await repo.create(
+        event_type="protest", title="Inside bbox", started_at=now, severity=3
+    )
     await repo.add_location(event_id=inside.id, name="Damascus", latitude=33.5, longitude=36.3)
 
-    outside = await repo.create(event_type="protest", title="Outside bbox", started_at=now, severity=3)
+    outside = await repo.create(
+        event_type="protest", title="Outside bbox", started_at=now, severity=3
+    )
     await repo.add_location(event_id=outside.id, name="Tokyo", latitude=35.7, longitude=139.7)
     await session.commit()
 
@@ -114,7 +122,9 @@ async def test_list_for_map_filters_by_since_until_and_min_severity(session: Asy
     old_low_severity = await repo.create(
         event_type="protest", title="Old, low severity", started_at=t1, severity=2
     )
-    await repo.add_location(event_id=old_low_severity.id, name="City A", latitude=10.0, longitude=10.0)
+    await repo.add_location(
+        event_id=old_low_severity.id, name="City A", latitude=10.0, longitude=10.0
+    )
 
     recent_high_severity = await repo.create(
         event_type="protest", title="Recent, high severity", started_at=t2, severity=9

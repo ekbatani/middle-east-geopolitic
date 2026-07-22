@@ -21,7 +21,9 @@ def review_risk_assessment(risk_assessment_id: str) -> None:
 async def _review_risk_assessment_async(risk_assessment_id: str) -> None:
     secondary_llm = get_secondary_structured_llm()
     if secondary_llm is None:
-        logger.info("multi_model_review.skipped_no_secondary_model", risk_assessment_id=risk_assessment_id)
+        logger.info(
+            "multi_model_review.skipped_no_secondary_model", risk_assessment_id=risk_assessment_id
+        )
         return
 
     settings = get_settings()

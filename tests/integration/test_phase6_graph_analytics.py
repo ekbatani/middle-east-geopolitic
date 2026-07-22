@@ -78,7 +78,9 @@ async def test_build_actor_graph_includes_only_actors_with_active_relationships(
 ) -> None:
     actors = ActorService(session)
     iran = await actors.create_actor(canonical_name="Graph Test Iran", actor_type=ActorType.COUNTRY)
-    israel = await actors.create_actor(canonical_name="Graph Test Israel", actor_type=ActorType.COUNTRY)
+    israel = await actors.create_actor(
+        canonical_name="Graph Test Israel", actor_type=ActorType.COUNTRY
+    )
     unconnected = await actors.create_actor(
         canonical_name="Graph Test Unconnected", actor_type=ActorType.COUNTRY
     )
@@ -103,8 +105,12 @@ async def test_build_actor_graph_edge_weight_uses_latest_escalation_score(
     session: AsyncSession,
 ) -> None:
     actors = ActorService(session)
-    source = await actors.create_actor(canonical_name="Weighted Source", actor_type=ActorType.COUNTRY)
-    target = await actors.create_actor(canonical_name="Weighted Target", actor_type=ActorType.COUNTRY)
+    source = await actors.create_actor(
+        canonical_name="Weighted Source", actor_type=ActorType.COUNTRY
+    )
+    target = await actors.create_actor(
+        canonical_name="Weighted Target", actor_type=ActorType.COUNTRY
+    )
 
     relationship = await RelationshipService(session).create_relationship(
         source_actor_id=source.id,

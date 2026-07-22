@@ -5,7 +5,9 @@ from mei.application.services.calibration import ForecastSample, bucket_forecast
 from mei.shared.enums import ForecastOutcome
 
 
-def _sample(probability: float, outcome: ForecastOutcome, brier_score: float | None = None) -> ForecastSample:
+def _sample(
+    probability: float, outcome: ForecastOutcome, brier_score: float | None = None
+) -> ForecastSample:
     return ForecastSample(probability=probability, outcome=outcome, brier_score=brier_score)
 
 
@@ -56,10 +58,14 @@ def test_mean_brier_score_ignores_missing_scores() -> None:
 
 
 @given(
-    probabilities=st.lists(st.floats(min_value=0, max_value=100, allow_nan=False), min_size=0, max_size=30),
+    probabilities=st.lists(
+        st.floats(min_value=0, max_value=100, allow_nan=False), min_size=0, max_size=30
+    ),
     bucket_count=st.integers(min_value=1, max_value=20),
 )
-def test_bucket_counts_always_sum_to_total_samples(probabilities: list[float], bucket_count: int) -> None:
+def test_bucket_counts_always_sum_to_total_samples(
+    probabilities: list[float], bucket_count: int
+) -> None:
     samples = [_sample(p, ForecastOutcome.YES) for p in probabilities]
     buckets = bucket_forecasts(samples, bucket_count=bucket_count)
     assert len(buckets) == bucket_count

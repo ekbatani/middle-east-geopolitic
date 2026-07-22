@@ -419,10 +419,14 @@ async def search_intelligence(
     results: list[SearchItem] = []
 
     # Actors
-    actor_stmt = select(Actor).where(Actor.canonical_name.ilike(f"%{payload.query}%")).limit(payload.limit)
+    actor_stmt = (
+        select(Actor).where(Actor.canonical_name.ilike(f"%{payload.query}%")).limit(payload.limit)
+    )
     actor_res = await session.execute(actor_stmt)
     for a in actor_res.scalars():
-        results.append(SearchItem(id=a.id, type="actor", title=a.canonical_name, detail=a.description))
+        results.append(
+            SearchItem(id=a.id, type="actor", title=a.canonical_name, detail=a.description)
+        )
 
     # Events
     event_stmt = select(Event).where(Event.title.ilike(f"%{payload.query}%")).limit(payload.limit)
@@ -431,18 +435,24 @@ async def search_intelligence(
         results.append(SearchItem(id=e.id, type="event", title=e.title, detail=e.summary))
 
     # Claims
-    claim_stmt = select(Claim).where(Claim.claim_text.ilike(f"%{payload.query}%")).limit(payload.limit)
+    claim_stmt = (
+        select(Claim).where(Claim.claim_text.ilike(f"%{payload.query}%")).limit(payload.limit)
+    )
     claim_res = await session.execute(claim_stmt)
     for c in claim_res.scalars():
-        results.append(SearchItem(id=c.id, type="claim", title=c.claim_text, detail=c.normalized_claim))
+        results.append(
+            SearchItem(id=c.id, type="claim", title=c.claim_text, detail=c.normalized_claim)
+        )
 
     # Documents
-    doc_stmt = select(Document).where(Document.title.ilike(f"%{payload.query}%")).limit(payload.limit)
+    doc_stmt = (
+        select(Document).where(Document.title.ilike(f"%{payload.query}%")).limit(payload.limit)
+    )
     doc_res = await session.execute(doc_stmt)
     for d in doc_res.scalars():
         results.append(SearchItem(id=d.id, type="document", title=d.title, detail=d.canonical_url))
 
-    return results[:payload.limit]
+    return results[: payload.limit]
 
 
 class EventInvestigationRequest(BaseModel):
@@ -589,4 +599,3 @@ async def map_events(
         )
         for event in events
     ]
-

@@ -64,7 +64,9 @@ def create_app() -> FastAPI:
     app.mount("/metrics", make_asgi_app())
     # Minimal, build-step-free human-facing pages (geospatial map,
     # calibration dashboard) — design doc section 35, Phase 6.
-    app.mount("/static", StaticFiles(directory=Path(__file__).resolve().parent / "static"), name="static")
+    app.mount(
+        "/static", StaticFiles(directory=Path(__file__).resolve().parent / "static"), name="static"
+    )
 
     api_v1 = APIRouter(prefix="/api/v1")
     api_v1.include_router(auth.router)

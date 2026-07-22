@@ -72,7 +72,9 @@ class AnalystDisagreementService:
     async def list_positions(
         self, *, subject_type: DisagreementSubjectType, subject_id: UUID
     ) -> list[AnalystAssessment]:
-        return await self._assessments.list_positions(subject_type=subject_type, subject_id=subject_id)
+        return await self._assessments.list_positions(
+            subject_type=subject_type, subject_id=subject_id
+        )
 
     async def list_disagreements(
         self,

@@ -120,7 +120,9 @@ async def list_images(
 
 
 @router.get("/{image_id}", response_model=ImageEvidenceOut)
-async def get_image(image_id: UUID, session: SessionDep, _principal: ReadPrincipal) -> ImageEvidenceOut:
+async def get_image(
+    image_id: UUID, session: SessionDep, _principal: ReadPrincipal
+) -> ImageEvidenceOut:
     image = await ImageryRepository(session).get(image_id)
     if image is None:
         raise NotFoundError(f"Image {image_id} not found")
@@ -160,7 +162,10 @@ async def reanalyze_image(
 
 @router.post("/{image_id}/link-to-bundle", status_code=201)
 async def link_image_to_bundle(
-    image_id: UUID, payload: LinkImageToBundleRequest, session: SessionDep, principal: SubmitPrincipal
+    image_id: UUID,
+    payload: LinkImageToBundleRequest,
+    session: SessionDep,
+    principal: SubmitPrincipal,
 ) -> dict[str, str]:
     images = ImageryRepository(session)
     evidence = EvidenceRepository(session)
