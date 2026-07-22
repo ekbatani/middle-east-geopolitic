@@ -82,6 +82,7 @@ class DocumentStatus(StrEnum):
 class ReviewType(StrEnum):
     ENTITY_RESOLUTION = "entity_resolution"
     EVENT_DUPLICATE = "event_duplicate"
+    HIGH_IMPACT_EVENT = "high_impact_event"
 
 
 class ReviewStatus(StrEnum):
@@ -119,6 +120,8 @@ class Scope(StrEnum):
     MONITORS_MANAGE = "monitors:manage"
     ADMIN_CONFIGURATION = "admin:configuration"
     REVIEW_RESOLVE = "review:resolve"
+    ANALYST_ASSESSMENTS_RECORD = "analyst_assessments:record"
+    IMAGERY_SUBMIT = "imagery:submit"
 
 
 class AuditActorType(StrEnum):
@@ -219,3 +222,18 @@ class ReportStatus(StrEnum):
     APPROVED = "approved"
     PUBLISHED = "published"
     REJECTED = "rejected"
+
+
+class DisagreementSubjectType(StrEnum):
+    """What kind of record an `AnalystAssessment` records a position on (design doc section 35)."""
+
+    CLAIM = "claim"
+    EVENT = "event"
+    RISK_ASSESSMENT = "risk_assessment"
+    RELATIONSHIP_OBSERVATION = "relationship_observation"
+
+
+class ModelReviewSubjectType(StrEnum):
+    """What kind of record a `ModelReviewResult` shadow-reviewed (design doc section 35)."""
+
+    RISK_ASSESSMENT = "risk_assessment"

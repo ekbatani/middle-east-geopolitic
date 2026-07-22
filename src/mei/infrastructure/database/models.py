@@ -7,6 +7,7 @@ individual domain packages.
 """
 
 from mei.domain.actors import models as actors_models
+from mei.domain.analyst_assessments import models as analyst_assessments_models
 from mei.domain.audit import models as audit_models
 from mei.domain.claims import models as claims_models
 from mei.domain.documents import models as documents_models
@@ -14,8 +15,10 @@ from mei.domain.events import models as events_models
 from mei.domain.evidence import models as evidence_models
 from mei.domain.forecasts import models as forecasts_models
 from mei.domain.identity import models as identity_models
+from mei.domain.imagery import models as imagery_models
 from mei.domain.indicators import models as indicators_models
 from mei.domain.investigations import models as investigations_models
+from mei.domain.model_reviews import models as model_reviews_models
 from mei.domain.monitors import models as monitors_models
 from mei.domain.relationships import models as relationships_models
 from mei.domain.reports import models as reports_models
@@ -26,6 +29,7 @@ from mei.domain.sources import models as sources_models
 
 __all__ = [
     "actors_models",
+    "analyst_assessments_models",
     "audit_models",
     "claims_models",
     "documents_models",
@@ -33,8 +37,10 @@ __all__ = [
     "evidence_models",
     "forecasts_models",
     "identity_models",
+    "imagery_models",
     "indicators_models",
     "investigations_models",
+    "model_reviews_models",
     "monitors_models",
     "relationships_models",
     "reports_models",
