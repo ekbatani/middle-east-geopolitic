@@ -4,7 +4,7 @@ from datetime import datetime
 from typing import Annotated
 from uuid import UUID
 
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, Query
 from pydantic import BaseModel, Field
 from sqlalchemy import select
 
@@ -507,4 +507,86 @@ async def scenario_simulation(
         llm=llm,
     )
     return result
+
+
+# --- map-events (design doc section 35, Phase 6 "geospatial UI") -------------
+
+
+def parse_bbox(value: str) -> tuple[float, float, float, float]:
+    """Parse a `"min_lon,min_lat,max_lon,max_lat"` query parameter."""
+    parts = value.split(",")
+    if len(parts) != 4:
+        raise ValidationError(f"Invalid bbox {value!r}: expected 'min_lon,min_lat,max_lon,max_lat'")
+    try:
+        min_lon, min_lat, max_lon, max_lat = (float(p) for p in parts)
+    except ValueError as exc:
+        raise ValidationError(f"Invalid bbox {value!r}: all four values must be numbers") from exc
+    return (min_lon, min_lat, max_lon, max_lat)
+
+
+class MapEventLocationOut(BaseModel):
+    name: str
+    latitude: float | None
+    longitude: float | None
+    location_precision: str | None
+    country_actor_id: UUID | None
+
+
+class MapEventOut(BaseModel):
+    event_id: UUID
+    title: str
+    event_type: str
+    started_at: datetime
+    severity: int | None
+    strategic_significance: str | None
+    verification_status: str
+    locations: list[MapEventLocationOut]
+
+
+@router.get("/map-events", response_model=list[MapEventOut])
+async def map_events(
+    session: SessionDep,
+    _principal: ReadPrincipal,
+    bbox: str | None = None,
+    since: datetime | None = None,
+    until: datetime | None = None,
+    event_type: str | None = None,
+    min_severity: int | None = None,
+    country_actor_id: UUID | None = None,
+    limit: int = Query(default=500, ge=1, le=2000),
+    offset: int = Query(default=0, ge=0),
+) -> list[MapEventOut]:
+    events = await EventRepository(session).list_for_map(
+        bbox=parse_bbox(bbox) if bbox else None,
+        since=since,
+        until=until,
+        event_type=event_type,
+        min_severity=min_severity,
+        country_actor_id=country_actor_id,
+        limit=limit,
+        offset=offset,
+    )
+    return [
+        MapEventOut(
+            event_id=event.id,
+            title=event.title,
+            event_type=event.event_type,
+            started_at=event.started_at,
+            severity=event.severity,
+            strategic_significance=event.strategic_significance,
+            verification_status=str(event.verification_status),
+            locations=[
+                MapEventLocationOut(
+                    name=loc.name,
+                    latitude=loc.latitude,
+                    longitude=loc.longitude,
+                    location_precision=loc.location_precision,
+                    country_actor_id=loc.country_actor_id,
+                )
+                for loc in event.locations
+                if loc.latitude is not None and loc.longitude is not None
+            ],
+        )
+        for event in events
+    ]
 

@@ -1,5 +1,8 @@
+from pathlib import Path
+
 from fastapi import APIRouter, FastAPI, Request
 from fastapi.responses import JSONResponse
+from fastapi.staticfiles import StaticFiles
 from prometheus_client import make_asgi_app
 
 from apps.api.middleware.correlation import CorrelationIdMiddleware
@@ -56,6 +59,9 @@ def create_app() -> FastAPI:
 
     app.include_router(health.router)
     app.mount("/metrics", make_asgi_app())
+    # Minimal, build-step-free human-facing pages (geospatial map,
+    # calibration dashboard) — design doc section 35, Phase 6.
+    app.mount("/static", StaticFiles(directory=Path(__file__).resolve().parent / "static"), name="static")
 
     api_v1 = APIRouter(prefix="/api/v1")
     api_v1.include_router(auth.router)

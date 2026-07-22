@@ -82,6 +82,48 @@ class EventRepository:
         await self._session.flush()
         return event
 
+    async def list_for_map(
+        self,
+        *,
+        bbox: tuple[float, float, float, float] | None = None,
+        since: datetime | None = None,
+        until: datetime | None = None,
+        event_type: str | None = None,
+        min_severity: int | None = None,
+        country_actor_id: UUID | None = None,
+        limit: int = 500,
+        offset: int = 0,
+    ) -> list[Event]:
+        """Events with at least one geolocated `EventLocation` (design doc
+        section 35, Phase 6 "geospatial UI"). `bbox` is `(min_lon, min_lat,
+        max_lon, max_lat)` — a simple bounding-box filter, no PostGIS."""
+        stmt = (
+            self._select_with_relations()
+            .join(EventLocation, EventLocation.event_id == Event.id)
+            .where(EventLocation.latitude.is_not(None), EventLocation.longitude.is_not(None))
+            .order_by(Event.started_at.desc())
+            .distinct()
+        )
+        if bbox is not None:
+            min_lon, min_lat, max_lon, max_lat = bbox
+            stmt = stmt.where(
+                EventLocation.longitude.between(min_lon, max_lon),
+                EventLocation.latitude.between(min_lat, max_lat),
+            )
+        if since is not None:
+            stmt = stmt.where(Event.started_at >= since)
+        if until is not None:
+            stmt = stmt.where(Event.started_at <= until)
+        if event_type is not None:
+            stmt = stmt.where(Event.event_type == event_type)
+        if min_severity is not None:
+            stmt = stmt.where(Event.severity >= min_severity)
+        if country_actor_id is not None:
+            stmt = stmt.where(EventLocation.country_actor_id == country_actor_id)
+        stmt = stmt.limit(limit).offset(offset)
+        result = await self._session.execute(stmt)
+        return list(result.scalars().unique())
+
     async def find_candidates(
         self,
         *,
