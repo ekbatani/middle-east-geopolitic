@@ -1,0 +1,119 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<title>MEI — Forecast Calibration</title>
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js"></script>
+<style>
+  body { font-family: system-ui, sans-serif; margin: 0; padding: 20px; max-width: 900px; }
+  h1 { font-size: 18px; }
+  #controls { display: flex; gap: 12px; align-items: flex-end; flex-wrap: wrap; margin-bottom: 16px; }
+  #controls label { display: block; font-size: 12px; color: #333; margin-bottom: 2px; }
+  #controls input { padding: 4px; font-size: 13px; }
+  #controls button { padding: 6px 14px; cursor: pointer; }
+  #summary { font-size: 13px; color: #444; margin-bottom: 16px; }
+  canvas { max-width: 100%; }
+  #status { font-size: 12px; color: #666; }
+</style>
+</head>
+<body>
+<h1>MEI — Forecast Calibration</h1>
+
+<div id="controls">
+  <div>
+    <label for="token">API bearer token</label>
+    <input id="token" type="password" placeholder="mei_... or JWT" style="width: 260px" />
+  </div>
+  <div>
+    <label for="since">Issued since</label>
+    <input id="since" type="date" />
+  </div>
+  <div>
+    <label for="until">Issued until</label>
+    <input id="until" type="date" />
+  </div>
+  <div>
+    <label for="bucket_count">Buckets</label>
+    <input id="bucket_count" type="number" min="1" max="100" value="10" style="width: 60px" />
+  </div>
+  <button id="load">Load</button>
+</div>
+
+<div id="summary"></div>
+<canvas id="reliability" height="90"></canvas>
+<canvas id="counts" height="60" style="margin-top: 24px"></canvas>
+<div id="status"></div>
+
+<script>
+const tokenInput = document.getElementById('token');
+tokenInput.value = localStorage.getItem('mei_api_token') || '';
+
+let reliabilityChart = null;
+let countsChart = null;
+
+async function loadCalibration() {
+  const status = document.getElementById('status');
+  const token = tokenInput.value.trim();
+  localStorage.setItem('mei_api_token', token);
+
+  const params = new URLSearchParams();
+  const since = document.getElementById('since').value;
+  const until = document.getElementById('until').value;
+  const bucketCount = document.getElementById('bucket_count').value;
+  if (since) params.set('since', new Date(since).toISOString());
+  if (until) params.set('until', new Date(until).toISOString());
+  if (bucketCount) params.set('bucket_count', bucketCount);
+
+  status.textContent = 'Loading...';
+  try {
+    const resp = await fetch(`/api/v1/forecasts/calibration?${params.toString()}`, {
+      headers: token ? { Authorization: `Bearer ${token}` } : {},
+    });
+    if (!resp.ok) {
+      status.textContent = `Error ${resp.status}: ${await resp.text()}`;
+      return;
+    }
+    const report = await resp.json();
+    render(report);
+    status.textContent = '';
+  } catch (err) {
+    status.textContent = `Request failed: ${err}`;
+  }
+}
+
+function render(report) {
+  document.getElementById('summary').textContent =
+    `Overall Brier score: ${report.overall_brier_score !== null ? report.overall_brier_score.toFixed(3) : 'n/a'} | ` +
+    `Resolved: ${report.resolved_count} | Open: ${report.open_count}`;
+
+  const labels = report.buckets.map(b => `${(b.lower * 100).toFixed(0)}-${(b.upper * 100).toFixed(0)}%`);
+  const predicted = report.buckets.map(b => b.mean_predicted_probability !== null ? b.mean_predicted_probability * 100 : null);
+  const observed = report.buckets.map(b => b.observed_frequency !== null ? b.observed_frequency * 100 : null);
+  const counts = report.buckets.map(b => b.forecast_count);
+
+  if (reliabilityChart) reliabilityChart.destroy();
+  reliabilityChart = new Chart(document.getElementById('reliability'), {
+    type: 'line',
+    data: {
+      labels,
+      datasets: [
+        { label: 'Predicted probability (%)', data: predicted, borderColor: '#2980b9', spanGaps: true },
+        { label: 'Observed frequency (%)', data: observed, borderColor: '#c0392b', spanGaps: true },
+      ],
+    },
+    options: { scales: { y: { min: 0, max: 100 } }, plugins: { title: { display: true, text: 'Reliability diagram' } } },
+  });
+
+  if (countsChart) countsChart.destroy();
+  countsChart = new Chart(document.getElementById('counts'), {
+    type: 'bar',
+    data: { labels, datasets: [{ label: 'Forecasts per bucket', data: counts, backgroundColor: '#7f8c8d' }] },
+    options: { plugins: { title: { display: true, text: 'Forecast count per bucket' } } },
+  });
+}
+
+document.getElementById('load').addEventListener('click', loadCalibration);
+</script>
+</body>
+</html>

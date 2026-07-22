@@ -7,6 +7,7 @@ from pydantic import BaseModel, Field
 
 from apps.api.audit import audit
 from apps.api.dependencies import SessionDep, require_scopes
+from mei.application.services.calibration import CalibrationService
 from mei.application.services.forecast_audit import ForecastAuditService
 from mei.domain.forecasts.models import ForecastRecord
 from mei.infrastructure.auth.principal import Principal
@@ -84,6 +85,41 @@ async def list_forecasts(
         status=status, limit=limit, offset=offset
     )
     return [ForecastOut.from_domain(f) for f in forecasts]
+
+
+class CalibrationBucketOut(BaseModel):
+    lower: float
+    upper: float
+    forecast_count: int
+    mean_predicted_probability: float | None
+    observed_frequency: float | None
+    mean_brier_score: float | None
+
+
+class CalibrationReportOut(BaseModel):
+    overall_brier_score: float | None
+    resolved_count: int
+    open_count: int
+    buckets: list[CalibrationBucketOut]
+
+
+@router.get("/calibration", response_model=CalibrationReportOut)
+async def get_calibration(
+    session: SessionDep,
+    _principal: ReadPrincipal,
+    since: datetime | None = None,
+    until: datetime | None = None,
+    bucket_count: int = Query(default=10, ge=1, le=100),
+) -> CalibrationReportOut:
+    report = await CalibrationService(session).compute_reliability(
+        since=since, until=until, bucket_count=bucket_count
+    )
+    return CalibrationReportOut(
+        overall_brier_score=report["overall_brier_score"],
+        resolved_count=report["resolved_count"],
+        open_count=report["open_count"],
+        buckets=[CalibrationBucketOut(**bucket) for bucket in report["buckets"]],
+    )
 
 
 @router.get("/{forecast_id}", response_model=ForecastOut)
