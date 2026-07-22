@@ -89,6 +89,28 @@ class ReviewService:
         )
         return item
 
+    async def acknowledge_high_impact_event(
+        self, item_id: UUID, *, principal: Principal, note: str | None = None
+    ) -> ReviewItem:
+        """Analyst acknowledgment of a design doc section 16.4 high-impact
+        event flag (design doc section 35, Phase 6). Distinct from
+        `resolve_entity_resolution`: there's no candidate actor to apply
+        here, just a human confirming the flagged event has been seen and
+        considered — the event's own approve/reject flow
+        (`EventService.approve_event`/`reject_event`) is unaffected."""
+        item = await self._require_pending(item_id)
+        if item.review_type != ReviewType.HIGH_IMPACT_EVENT:
+            raise ConflictError(f"Review item {item_id} is not a high-impact-event item")
+
+        await self._review.resolve(
+            item,
+            status=ReviewStatus.APPROVED,
+            resolution={"acknowledged_by": str(principal.user_id), "note": note},
+            resolved_by=str(principal.user_id),
+            resolved_at=utcnow(),
+        )
+        return item
+
     async def reject(self, item_id: UUID, *, principal: Principal) -> ReviewItem:
         item = await self._require_pending(item_id)
         await self._review.resolve(

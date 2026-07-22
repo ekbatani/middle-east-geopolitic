@@ -19,6 +19,7 @@ from apps.api.routers import (
     indicators,
     intelligence,
     investigations,
+    model_reviews,
     monitors,
     relationships,
     reports,
@@ -83,6 +84,7 @@ def create_app() -> FastAPI:
     api_v1.include_router(monitors.router)
     api_v1.include_router(graph.router)
     api_v1.include_router(analyst_assessments.router)
+    api_v1.include_router(model_reviews.router)
     app.include_router(api_v1)
 
     return app

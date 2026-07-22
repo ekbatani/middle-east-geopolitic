@@ -7,12 +7,44 @@ from mei.domain.events.models import Event, EventActor, EventImpact, EventLocati
 from mei.infrastructure.repositories.actors import ActorRepository
 from mei.infrastructure.repositories.claims import ClaimRepository
 from mei.infrastructure.repositories.events import EventRepository
-from mei.shared.enums import LifecycleStatus
+from mei.infrastructure.repositories.review import ReviewRepository
+from mei.shared.enums import LifecycleStatus, ReviewType
 from mei.shared.errors import ConflictError, NotFoundError
 
 _TERMINAL_STATUSES = frozenset(
     {LifecycleStatus.APPROVED, LifecycleStatus.REJECTED, LifecycleStatus.SUPERSEDED}
 )
+
+# Event types design doc section 16.4 names as always requiring human review
+# before the platform treats them as settled — attribution, casualty,
+# leadership, nuclear, territorial, and war-status claims are too
+# consequential for silent automated promotion. `event_type` is free text
+# (no canonical enum), so this is the vocabulary extraction/analysts are
+# expected to use for these categories.
+HIGH_IMPACT_EVENT_TYPES = frozenset(
+    {
+        "war_declaration",
+        "leader_death_or_incapacitation",
+        "nuclear_incident",
+        "major_attack_attribution",
+        "mass_casualty_estimate",
+        "territorial_control_change",
+        "government_collapse",
+        "ceasefire_or_treaty",
+        "chokepoint_closure",
+        "external_power_direct_entry",
+    }
+)
+
+_CRITICAL_SIGNIFICANCE = "critical"
+
+
+def is_high_impact_event(event_type: str, strategic_significance: str | None) -> bool:
+    """Whether an event needs the design doc section 16.4 human-review
+    path — either it's one of the always-review event types, or it's been
+    marked critical strategic significance regardless of type. Pure and
+    DB-free."""
+    return event_type in HIGH_IMPACT_EVENT_TYPES or strategic_significance == _CRITICAL_SIGNIFICANCE
 
 
 class EventService:
@@ -20,6 +52,7 @@ class EventService:
         self._events = EventRepository(session)
         self._claims = ClaimRepository(session)
         self._actors = ActorRepository(session)
+        self._reviews = ReviewRepository(session)
 
     async def create_event(
         self,
@@ -33,7 +66,7 @@ class EventService:
         severity: int | None = None,
         strategic_significance: str | None = None,
     ) -> Event:
-        return await self._events.create(
+        event = await self._events.create(
             event_type=event_type,
             title=title,
             started_at=started_at,
@@ -43,6 +76,17 @@ class EventService:
             severity=severity,
             strategic_significance=strategic_significance,
         )
+        if is_high_impact_event(event_type, strategic_significance):
+            await self._reviews.create(
+                review_type=ReviewType.HIGH_IMPACT_EVENT,
+                subject={
+                    "event_id": str(event.id),
+                    "event_type": event_type,
+                    "strategic_significance": strategic_significance,
+                },
+                candidates=[],
+            )
+        return event
 
     async def add_actor(
         self,
@@ -146,4 +190,4 @@ class EventService:
             raise ConflictError(f"Event is already {event.lifecycle_status}")
 
 
-__all__ = ["EventService"]
+__all__ = ["HIGH_IMPACT_EVENT_TYPES", "EventService", "is_high_impact_event"]

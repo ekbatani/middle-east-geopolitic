@@ -28,6 +28,13 @@ class Settings(BaseSettings):
     llm_model: str = "gpt-4o-mini"
     llm_api_key: str = ""
 
+    # Multi-model review (design doc section 35, Phase 6): a second model
+    # used only to shadow-check high-impact risk assessments. Empty disables
+    # the feature entirely, matching the `llm_api_key`-empty precedent.
+    llm_secondary_model: str = ""
+    multi_model_review_score_delta_threshold: int = Field(default=15, ge=1, le=100)
+    multi_model_review_agreement_tolerance: int = Field(default=5, ge=0, le=100)
+
     jwt_issuer: str = "mei-platform"
     jwt_audience: str = "mei-clients"
     jwt_access_token_ttl_seconds: int = Field(default=3600, gt=0)

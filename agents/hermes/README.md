@@ -12,6 +12,6 @@ Hermes is the AI operator for the Middle East Geopolitical Intelligence Platform
 1. **Read Tools**:
    - Querying actors, events, claims, evidence, relationships, risk scores, and active scenarios.
 2. **Analytical Tools**:
-   - Launching investigations, comparing narratives, generating briefs or weekly outlooks, ranking/pathfinding over the actor-relationship graph, and listing analyst disagreements.
+   - Launching investigations, comparing narratives, generating briefs or weekly outlooks, ranking/pathfinding over the actor-relationship graph, listing analyst disagreements, and reviewing multi-model agreement results.
 3. **Controlled Write Tools**:
    - Submitting sources, adding analyst notes, recording analyst positions, managing alerts/monitors, and approving content (requires verification).

@@ -20,6 +20,7 @@ celery_app = Celery(
         "apps.worker.tasks.generate_reports",
         "apps.worker.tasks.dispatch_notifications",
         "apps.worker.tasks.investigate",
+        "apps.worker.tasks.multi_model_review",
     ],
 )
 
@@ -47,8 +48,8 @@ celery_app.conf.update(
         "apps.worker.tasks.generate_reports.*": {"queue": "reporting"},
         "apps.worker.tasks.dispatch_notifications.*": {"queue": "reporting"},
         "apps.worker.tasks.investigate.*": {"queue": "analysis"},
+        "apps.worker.tasks.multi_model_review.*": {"queue": "analysis"},
     },
-
 )
 
 from apps.worker import schedules  # noqa: E402

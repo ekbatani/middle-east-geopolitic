@@ -325,6 +325,16 @@ TOOLS = [
             }
         }
     },
+    {
+        "name": "get_model_review_results",
+        "description": "List recent multi-model agreement/disagreement results for high-impact risk assessments.",
+        "inputSchema": {
+            "type": "object",
+            "properties": {
+                "agreement": {"type": "boolean", "description": "Optional filter: true for agreements only, false for disagreements only."}
+            }
+        }
+    },
     # Write
     {
         "name": "submit_source",
@@ -549,6 +559,11 @@ async def execute_tool(name: str, arguments: dict[str, Any]) -> Any:
         if "subject_type" in arguments:
             params["subject_type"] = arguments["subject_type"]
         return await call_api("GET", "/api/v1/analyst-assessments/disagreements", params=params)
+    elif name == "get_model_review_results":
+        params = {}
+        if "agreement" in arguments:
+            params["agreement"] = arguments["agreement"]
+        return await call_api("GET", "/api/v1/model-reviews", params=params)
 
     # Controlled Write Tools
     elif name == "submit_source":

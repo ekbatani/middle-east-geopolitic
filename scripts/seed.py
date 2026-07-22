@@ -59,6 +59,7 @@ API_KEY_SCOPES: dict[str, list[Scope]] = {
         Scope.EVENTS_APPROVE,
         Scope.CLAIMS_ASSESS,
         Scope.REPORTS_APPROVE,
+        Scope.REVIEW_RESOLVE,
     ],
 }
 

@@ -35,6 +35,10 @@ class ResolveReviewItemRequest(BaseModel):
     resolved_actor_id: UUID
 
 
+class AcknowledgeReviewItemRequest(BaseModel):
+    note: str | None = None
+
+
 @router.get("", response_model=list[ReviewItemOut])
 async def list_review_items(
     session: SessionDep,
@@ -75,6 +79,26 @@ async def resolve_review_item(
         resource_type="review_item",
         resource_id=str(item_id),
         metadata={"resolved_actor_id": str(payload.resolved_actor_id)},
+    )
+    return ReviewItemOut.model_validate(item)
+
+
+@router.post("/{item_id}/acknowledge", response_model=ReviewItemOut)
+async def acknowledge_review_item(
+    item_id: UUID,
+    payload: AcknowledgeReviewItemRequest,
+    session: SessionDep,
+    principal: ResolvePrincipal,
+) -> ReviewItemOut:
+    item = await ReviewService(session).acknowledge_high_impact_event(
+        item_id, principal=principal, note=payload.note
+    )
+    await audit(
+        session,
+        principal,
+        "review_item.acknowledged",
+        resource_type="review_item",
+        resource_id=str(item_id),
     )
     return ReviewItemOut.model_validate(item)
 

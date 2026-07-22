@@ -115,6 +115,7 @@ class RiskEngine:
         as_of: datetime | None = None,
         llm: StructuredLLM | None = None,
         triggered_by: str | None = None,
+        persist: bool = True,
     ) -> RiskAssessment:
         definition = await self._risks.get_definition(risk_definition_id)
         if definition is None:
@@ -231,7 +232,42 @@ class RiskEngine:
         )
 
         now = utcnow()
-        return await self._risks.create_assessment(
+        # `contributions` is precisely-typed in-process (`ContributionRecord`);
+        # the repository's JSONB column is the untyped persistence boundary
+        # (`Mapped[list[object]]`), so the cast just marks that crossing
+        # rather than changing anything at runtime.
+        contributions_json = cast("list[object]", list(contributions))
+
+        if not persist:
+            # Multi-model review's shadow mode (design doc section 35,
+            # Phase 6): a secondary model reruns the same calculation
+            # without writing a competing `RiskAssessment` row or feeding
+            # into `previous_score`/trend history. Built directly rather
+            # than through `RiskRepository.create_assessment` so nothing
+            # touches the session.
+            return RiskAssessment(
+                risk_definition_id=risk_definition_id,
+                scope_type=scope_type,
+                scope_id=scope_id,
+                assessed_at=assessed_at,
+                base_score=base_score,
+                llm_adjustment=adjustment,
+                final_score=final_score,
+                previous_score=previous_score,
+                trend=trend,
+                confidence=confidence,
+                explanation=explanation,
+                counter_indicators_json=counter_indicators,
+                contributions_json=contributions_json,
+                evidence_bundle_id=None,
+                ruleset_version=definition.ruleset_version,
+                model_version=model_version,
+                approval_status=RiskApprovalStatus.APPROVED,
+                approved_by=triggered_by or "system",
+                approved_at=now,
+            )
+
+        assessment = await self._risks.create_assessment(
             risk_definition_id=risk_definition_id,
             scope_type=scope_type,
             scope_id=scope_id,
@@ -244,11 +280,7 @@ class RiskEngine:
             confidence=confidence,
             explanation=explanation,
             counter_indicators=counter_indicators,
-            # `contributions` is precisely-typed in-process (`ContributionRecord`);
-            # the repository's JSONB column is the untyped persistence
-            # boundary (`Mapped[list[object]]`), so the cast just marks that
-            # crossing rather than changing anything at runtime.
-            contributions=cast("list[object]", list(contributions)),
+            contributions=contributions_json,
             evidence_bundle_id=None,
             ruleset_version=definition.ruleset_version,
             model_version=model_version,
@@ -256,6 +288,36 @@ class RiskEngine:
             approved_by=triggered_by or "system",
             approved_at=now,
         )
+        self._maybe_trigger_multi_model_review(assessment)
+        return assessment
+
+    @staticmethod
+    def _maybe_trigger_multi_model_review(assessment: RiskAssessment) -> None:
+        """Enqueue a second-model shadow review for a large enough score
+        move (design doc section 35, Phase 6 "multi-model review").
+
+        Local imports to avoid a circular import: `multi_model_review`
+        imports `RiskEngine` for its own shadow rerun, and the Celery task
+        module lives downstream of the application layer — the same
+        pattern `InvestigationService.create` uses to enqueue
+        `run_investigation` without a module-level worker dependency.
+        """
+        from mei.application.services.multi_model_review import should_trigger_for_risk
+
+        settings = get_settings()
+        if not settings.llm_secondary_model:
+            return
+        trigger_reason = should_trigger_for_risk(
+            assessment.final_score,
+            assessment.previous_score,
+            settings.multi_model_review_score_delta_threshold,
+        )
+        if trigger_reason is None:
+            return
+
+        from apps.worker.tasks.multi_model_review import review_risk_assessment
+
+        review_risk_assessment.delay(str(assessment.id))
 
     async def _get_llm_adjustment(
         self,
