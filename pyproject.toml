@@ -92,6 +92,7 @@ module = [
     "boto3.*",
     "botocore.*",
     "langdetect.*",
+    "networkx.*",
 ]
 ignore_missing_imports = true
 
