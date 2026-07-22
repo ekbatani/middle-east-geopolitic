@@ -6,6 +6,7 @@ Hermes is the AI operator for the Middle East Geopolitical Intelligence Platform
 
 - `SYSTEM.md`: Core prompt and rules.
 - `mcp/server.py`: Model Context Protocol (MCP) server exposing tools over stdio to call the FastAPI endpoints.
+- `PROFILE-SETUP.md`: Setup guide for configuring a Hermes profile to use this MCP bridge safely.
 
 ## Tool Categories
 
