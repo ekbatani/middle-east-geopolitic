@@ -338,12 +338,16 @@ class ReportGenerator:
         return "\n".join(lines) + "\n"
 
     @staticmethod
-    async def _archive(*, report_type: ReportType, generated_at: datetime, content: str) -> str:
-        storage = ObjectStorage()
+    async def _archive(*, report_type: ReportType, generated_at: datetime, content: str) -> str | None:
         key = f"reports/{generated_at:%Y/%m/%d}/{report_type}-{generated_at:%H%M%S}.md"
-        await storage.ensure_bucket()
-        await storage.put_bytes(key, content.encode("utf-8"), content_type="text/markdown")
-        return key
+        try:
+            storage = ObjectStorage()
+            await storage.ensure_bucket()
+            await storage.put_bytes(key, content.encode("utf-8"), content_type="text/markdown")
+            return key
+        except Exception as exc:
+            logger.warning("report_generator.archive_failed", key=key, error=str(exc))
+            return None
 
     async def approve_report(self, report_id: UUID, *, approved_by: str) -> Report:
         approved = await self._reports.approve(

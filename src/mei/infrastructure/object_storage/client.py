@@ -9,8 +9,6 @@ from botocore.config import Config
 from botocore.exceptions import ClientError
 
 from mei.shared.config import get_settings
-
-
 from mei.shared.logging import get_logger
 
 logger = get_logger(__name__)
@@ -24,7 +22,7 @@ def _get_boto_client() -> BaseClient:
         endpoint_url=settings.s3_endpoint_url,
         aws_access_key_id=settings.s3_access_key,
         aws_secret_access_key=settings.s3_secret_key,
-        config=Config(signature_version="s3v4"),
+        config=Config(signature_version="s3v4", s3={"addressing_style": "path"}),
         region_name="us-east-1",
     )
 
