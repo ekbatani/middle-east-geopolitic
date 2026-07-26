@@ -8,12 +8,15 @@ The platform is built for evidence-led analysis rather than open-ended news chat
 
 1. [Project idea and product specification](docs/01-project-idea.md)
 2. [Implementation design](docs/02-implementation-design.md)
+3. [Deployment and operations guide](docs/03-deployment-and-operations.md)
+4. [API reference](docs/api.md)
+5. [Data model guide](docs/data-model.md)
+6. [Risk methodology](docs/risk-methodology.md)
+7. [Hermes agent integration](docs/hermes-integration.md)
 
 ## Architecture
 
 - **Hermes:** MCP-based operator for controlled queries, reports, monitoring, alerts, and investigation commands
-- **FastAPI:** authenticated and audited intelligence API
-- **PostgreSQL + pgvector:** authoritative structured data, history, and retrieval
 - **Celery + Redis:** collection and analytical background jobs
 - **MinIO/S3:** raw documents and generated report artifacts
 - **LLMs:** structured extraction, evidence comparison, bounded analysis, and report drafting

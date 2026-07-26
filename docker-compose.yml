@@ -2,15 +2,15 @@ services:
   postgres:
     image: pgvector/pgvector:pg16
     environment:
-      POSTGRES_USER: mei
-      POSTGRES_PASSWORD: mei
-      POSTGRES_DB: mei
+      POSTGRES_USER: ${POSTGRES_USER:-mei}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-mei}
+      POSTGRES_DB: ${POSTGRES_DB:-mei}
     ports:
       - "5432:5432"
     volumes:
       - postgres-data:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U mei"]
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-mei}"]
       interval: 5s
       timeout: 5s
       retries: 10
@@ -29,8 +29,8 @@ services:
     image: minio/minio:latest
     command: server /data --console-address ":9001"
     environment:
-      MINIO_ROOT_USER: mei
-      MINIO_ROOT_PASSWORD: mei-secret-key
+      MINIO_ROOT_USER: ${MINIO_ROOT_USER:-mei}
+      MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD:-mei-secret-key}
     ports:
       - "9000:9000"
       - "9001:9001"
@@ -48,9 +48,9 @@ services:
       target: api
     env_file: .env
     environment:
-      DATABASE_URL: postgresql+asyncpg://mei:mei@postgres:5432/mei
-      REDIS_URL: redis://redis:6379/0
-      S3_ENDPOINT_URL: http://minio:9000
+      DATABASE_URL: ${DATABASE_URL:-postgresql+asyncpg://mei:mei@postgres:5432/mei}
+      REDIS_URL: ${REDIS_URL:-redis://redis:6379/0}
+      S3_ENDPOINT_URL: ${S3_ENDPOINT_URL:-http://minio:9000}
     ports:
       - "8000:8000"
     depends_on:
@@ -67,9 +67,9 @@ services:
       target: worker
     env_file: .env
     environment:
-      DATABASE_URL: postgresql+asyncpg://mei:mei@postgres:5432/mei
-      REDIS_URL: redis://redis:6379/0
-      S3_ENDPOINT_URL: http://minio:9000
+      DATABASE_URL: ${DATABASE_URL:-postgresql+asyncpg://mei:mei@postgres:5432/mei}
+      REDIS_URL: ${REDIS_URL:-redis://redis:6379/0}
+      S3_ENDPOINT_URL: ${S3_ENDPOINT_URL:-http://minio:9000}
     depends_on:
       postgres:
         condition: service_healthy
@@ -84,9 +84,9 @@ services:
       target: beat
     env_file: .env
     environment:
-      DATABASE_URL: postgresql+asyncpg://mei:mei@postgres:5432/mei
-      REDIS_URL: redis://redis:6379/0
-      S3_ENDPOINT_URL: http://minio:9000
+      DATABASE_URL: ${DATABASE_URL:-postgresql+asyncpg://mei:mei@postgres:5432/mei}
+      REDIS_URL: ${REDIS_URL:-redis://redis:6379/0}
+      S3_ENDPOINT_URL: ${S3_ENDPOINT_URL:-http://minio:9000}
     depends_on:
       postgres:
         condition: service_healthy

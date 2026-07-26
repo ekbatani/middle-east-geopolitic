@@ -27,6 +27,7 @@ class Settings(BaseSettings):
     llm_provider: str = "openai"
     llm_model: str = "gpt-4o-mini"
     llm_api_key: str = ""
+    llm_base_url: str = ""
 
     # Multi-model review (design doc section 35, Phase 6): a second model
     # used only to shadow-check high-impact risk assessments. Empty disables

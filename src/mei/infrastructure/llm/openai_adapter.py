@@ -19,11 +19,29 @@ class OpenAIStructuredLLM:
     of the app works fine without one configured.
     """
 
-    def __init__(self, client: AsyncOpenAI | None = None, *, model: str | None = None) -> None:
+    def __init__(
+        self,
+        client: AsyncOpenAI | None = None,
+        *,
+        model: str | None = None,
+        base_url: str | None = None,
+        api_key: str | None = None,
+        default_headers: dict[str, str] | None = None,
+    ) -> None:
         settings = get_settings()
-        if client is None and not settings.llm_api_key:
+        resolved_key = api_key or settings.llm_api_key
+        if client is None and not resolved_key:
             raise LLMConfigurationError("LLM_API_KEY is not configured")
-        self._client = client or AsyncOpenAI(api_key=settings.llm_api_key)
+        resolved_base_url = base_url or settings.llm_base_url or None
+        if client is None:
+            client_kwargs: dict = {"api_key": resolved_key}
+            if resolved_base_url:
+                client_kwargs["base_url"] = resolved_base_url
+            if default_headers:
+                client_kwargs["default_headers"] = default_headers
+            self._client = AsyncOpenAI(**client_kwargs)
+        else:
+            self._client = client
         self._model = model or settings.llm_model
 
     async def generate_structured(
@@ -45,6 +63,11 @@ class OpenAIStructuredLLM:
             response_format=output_model,
         )
         parsed = completion.choices[0].message.parsed
+        if parsed is None and completion.choices[0].message.content:
+            try:
+                parsed = output_model.model_validate_json(completion.choices[0].message.content)
+            except Exception:
+                pass
         if parsed is None:
             raise LLMOutputError(
                 f"{task_name}/{prompt_version} produced no valid structured output"
@@ -80,6 +103,11 @@ class OpenAIStructuredLLM:
             response_format=output_model,
         )
         parsed = completion.choices[0].message.parsed
+        if parsed is None and completion.choices[0].message.content:
+            try:
+                parsed = output_model.model_validate_json(completion.choices[0].message.content)
+            except Exception:
+                pass
         if parsed is None:
             raise LLMOutputError(
                 f"{task_name}/{prompt_version} produced no valid structured output"
