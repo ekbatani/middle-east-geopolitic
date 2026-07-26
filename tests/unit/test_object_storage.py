@@ -19,3 +19,25 @@ def test_build_raw_object_key_matches_documented_layout() -> None:
     )
 
     assert key == f"raw/2026/07/20/{SOURCE_ID}/{DOCUMENT_ID}-abc123.html"
+
+
+import pytest
+from unittest.mock import MagicMock
+from botocore.exceptions import ClientError
+from mei.infrastructure.object_storage.client import ObjectStorage
+
+
+@pytest.mark.asyncio
+async def test_ensure_bucket_handles_forbidden_and_conflict() -> None:
+    storage = ObjectStorage(bucket="test-bucket")
+    mock_client = MagicMock()
+    # head_bucket raises 403, create_bucket raises 403
+    mock_client.head_bucket.side_effect = ClientError({"Error": {"Code": "403"}}, "HeadBucket")
+    mock_client.create_bucket.side_effect = ClientError({"Error": {"Code": "403"}}, "CreateBucket")
+    storage._client = mock_client
+
+    # Should not raise exception
+    await storage.ensure_bucket()
+    mock_client.head_bucket.assert_called_once_with(Bucket="test-bucket")
+    mock_client.create_bucket.assert_called_once_with(Bucket="test-bucket")
+

@@ -6,33 +6,41 @@ This guide provides instructions for deploying, running, operating, and maintain
 
 ## 1. System Topology Overview
 
-The platform uses a modular monolith architecture with async application services, durable background task queues, vector/relational persistence, and object storage:
+The platform uses a modular monolith architecture with async application services, durable background task queues, vector/relational persistence, and object storage. The Hermes agent operator can run co-located or on a separated server over HTTPS:
 
 ```text
-                               ┌──────────────────────────┐
-                               │   Hermes MCP Operator    │
-                               │   (stdio or stdio/HTTP)  │
-                               └────────────┬─────────────┘
-                                            │ API Key / HTTP
-                               ┌────────────▼─────────────┐
-                               │    FastAPI REST API      │
-                               │  (Port 8000 / Uvicorn)   │
-                               └──────┬──────┬─────┬──────┘
-                                      │      │     │
-                 ┌────────────────────┘      │     └────────────────────┐
-                 │                           │                          │
-        ┌────────▼────────┐         ┌────────▼────────┐        ┌────────▼────────┐
-        │  PostgreSQL 16  │         │   Redis 7.0     │        │ MinIO / S3 Store│
-        │   + pgvector    │         │  (Broker/Result)│        │ (Raw/Artifacts) │
-        │   (Port 5432)   │         │   (Port 6380)   │        │(Ports 9000/9001)│
-        └────────▲────────┘         └────────▲────────┘        └─────────────────┘
-                 │                           │
-                 └────────────┬──────────────┘
-                              │
-                    ┌─────────┴─────────┐
-                    │  Celery Worker &  │
-                    │   Celery Beat     │
-                    └───────────────────┘
+  ┌─────────────────────────────────┐        ┌──────────────────────────────────┐
+  │  Hermes Host (Local Machine)    │        │  Hermes Server (Separated Host)  │
+  │  (stdio / Claude / Cursor / CLI)│        │  (Remote Agent Server / Node)    │
+  └────────────────┬────────────────┘        └────────────────┬─────────────────┘
+                   │ stdio (JSON-RPC)                         │ stdio (JSON-RPC)
+  ┌────────────────▼────────────────┐        ┌────────────────▼─────────────────┐
+  │ Local Hermes MCP Bridge         │        │ Remote Hermes MCP Bridge         │
+  │ (agents/hermes/mcp/server.py)   │        │ (agents/hermes/mcp/server.py)    │
+  └────────────────┬────────────────┘        └────────────────┬─────────────────┘
+                   │ HTTP / localhost                         │ HTTPS / TLS (API Key)
+                   │                                          │
+                   └──────────────────┬───────────────────────┘
+                                      │ Network / REST API
+                         ┌────────────▼─────────────┐
+                         │    FastAPI REST API      │
+                         │  (Port 8000 / Uvicorn)   │
+                         └──────┬──────┬─────┬──────┘
+                                │      │     │
+            ┌───────────────────┘      │     └────────────────────┐
+            │                          │                          │
+   ┌────────▼────────┐        ┌────────▼────────┐        ┌────────▼────────┐
+   │  PostgreSQL 16  │        │   Redis 7.0     │        │ MinIO / S3 Store│
+   │   + pgvector    │        │  (Broker/Result)│        │ (Raw/Artifacts) │
+   │   (Port 5432)   │        │   (Port 6380)   │        │(Ports 9000/9001)│
+   └────────▲────────┘        └────────▲────────┘        └─────────────────┘
+            │                          │
+            └────────────┬─────────────┘
+                         │
+               ┌─────────┴─────────┐
+               │  Celery Worker &  │
+               │   Celery Beat     │
+               └───────────────────┘
 ```
 
 ---
@@ -168,43 +176,140 @@ make typecheck
 
 ## 6. Hermes MCP Agent Operator Setup
 
-Hermes serves as the AI operator for the Middle East Geopolitical Intelligence Platform. It connects to the platform via the Model Context Protocol (MCP) over `stdio`, proxying authenticated requests to the FastAPI backend. Hermes must never bypass the API to connect directly to PostgreSQL, Redis, MinIO, or Celery.
+Hermes serves as the AI operator for the Middle East Geopolitical Intelligence Platform. It connects to the platform via the Model Context Protocol (MCP) over `stdio`, proxying authenticated HTTP/HTTPS requests to the FastAPI backend. Hermes must **never** bypass the API layer to connect directly to PostgreSQL, Redis, MinIO, or Celery.
 
 ---
 
-### 6.1 Overview & Architecture
+### 6.1 Deployment Topologies
+
+The platform supports two deployment topologies for the Hermes operator:
+
+#### Topology A: Co-Located / Local Deployment
+Hermes runs on the same physical host, developer workstation, or container network as the FastAPI backend.
+- **Transport**: MCP over `stdio` launched directly by local client (Claude Desktop, Cursor, CLI).
+- **Endpoint**: `API_URL=http://localhost:8000` (host) or `http://api:8000` (Docker Compose network).
+
+#### Topology B: Separated Remote Hermes Server Deployment
+The Hermes server/operator runs on a dedicated, isolated server (e.g., remote AI runner node, separate cloud VM, or edge server) distinct from the application server.
+- **Transport**: MCP over `stdio` on the remote host, or local stdio tunneling over SSH to the remote host.
+- **Endpoint**: `API_URL=https://intel.example.com` (Public HTTPS domain or private VPN IP of the FastAPI server).
+- **Communication Boundary**: All interaction occurs strictly over TLS-encrypted HTTP REST calls. No database or queue ports are exposed to the Hermes server.
 
 ```text
-┌─────────────────────────┐          stdio (JSON-RPC)          ┌───────────────────────────┐
-│  Hermes Host / Client   │ ─────────────────────────────────> │   agents/hermes/mcp/      │
-│ (Claude / Cursor / CLI) │ <───────────────────────────────── │         server.py         │
-└─────────────────────────┘                                    └─────────────┬─────────────┘
-                                                                             │ HTTP + Bearer Token
-                                                               ┌─────────────▼─────────────┐
-                                                               │     FastAPI Backend       │
-                                                               │  (http://localhost:8000)  │
-                                                               └───────────────────────────┘
+┌───────────────────────────────────────────────────┐          HTTPS / REST API (Port 443)         ┌───────────────────────────────────────────────────┐
+│              SEPARATED HERMES SERVER              │ ───────────────────────────────────────────> │              PLATFORM APPLICATION SERVER          │
+│                                                   │                                              │                                                   │
+│ ┌──────────────────────┐   stdio   ┌────────────┐ │ <─────────────────────────────────────────── │ ┌──────────────────────┐  Internal  ┌───────────┐ │
+│ │  Hermes Client/Agent │ ────────> │ MCP Server │ │               Bearer mei_ Token              │ │    FastAPI Server    │ ──────────> │ PostgreSQL│ │
+│ │   (CLI / Orchestrator│ <──────── │ (server.py)│ │                                              │ │    (Port 8000/443)   │             │ Redis/S3  │ │
+│ └──────────────────────┘           └────────────┘ │                                              │ └──────────────────────┘             └───────────┘ │
+└───────────────────────────────────────────────────┘                                              └───────────────────────────────────────────────────┘
 ```
-
-The Hermes entrypoint is located at [`agents/hermes/mcp/server.py`](file:///c:/Users/a.ekbatani/source/personal/middle-east-geopolitic/agents/hermes/mcp/server.py). Detailed profile guidance is available in [`agents/hermes/PROFILE-SETUP.md`](file:///c:/Users/a.ekbatani/source/personal/middle-east-geopolitic/agents/hermes/PROFILE-SETUP.md).
 
 ---
 
-### 6.2 Step-by-Step Configuration Guide
+### 6.2 Network & Security Hardening for Separated Setup
+
+When Hermes is hosted on a separated server:
+
+1. **Firewall Boundaries**:
+   - **Platform Application Server**: Allow inbound traffic only on ports `80` / `443` (HTTP/HTTPS) from the Hermes server IP address (or open web if public). Keep PostgreSQL (`5432`), Redis (`6380`), MinIO (`9000`), and Celery workers strictly blocked from external/Hermes server network interfaces.
+   - **Hermes Server**: Requires only outbound HTTPS access to `API_URL`. Does not require any inbound public ports unless remote SSH access is used.
+
+2. **Authentication & Least Privilege**:
+   - Issue a dedicated `mei_...` Bearer API key specifically for the separated Hermes instance.
+   - Store `HERMES_API_KEY` securely in the Hermes server environment secrets manager (e.g., systemd environment file, HashiCorp Vault, Docker secret, or `.env` on the Hermes server).
+   - Assign only required role scopes (`hermes-read`, `hermes-analyst`, or `hermes-monitor`). Avoid granting `hermes-approver` keys to un-monitored remote sessions.
+
+---
+
+### 6.3 Deployment Methods on a Separated Hermes Server
+
+#### Option 1: Native Python / `uv` Execution on Separated Server
+Deploy the lightweight Hermes MCP files onto the separated server and execute directly:
+
+1. **Copy Hermes Files to Remote Host**:
+   Copy the `agents/hermes/` directory and `pyproject.toml` / `uv.lock` (or minimal Python environment) to the separated server:
+   ```bash
+   scp -r agents/hermes pyproject.toml uv.lock user@hermes-server:/opt/mei-hermes/
+   ```
+
+2. **Install Dependencies on Remote Host**:
+   ```bash
+   ssh user@hermes-server
+   cd /opt/mei-hermes
+   uv sync
+   ```
+
+3. **Configure Environment File (`/opt/mei-hermes/.env`)**:
+   ```env
+   API_URL=https://intel.example.com
+   HERMES_API_KEY=mei_live_secret_key_from_platform_server
+   ```
+
+4. **Launch MCP Bridge**:
+   ```bash
+   uv run python agents/hermes/mcp/server.py
+   ```
+
+#### Option 2: Remote MCP stdio Tunneling over SSH
+If your MCP client (e.g., Claude Desktop, Cursor) is on Machine A and the separated Hermes server is Machine B, connect via an SSH stdio wrapper:
+
+Add to your local `claude_desktop_config.json`:
+```json
+{
+  "mcpServers": {
+    "middle-east-intelligence-remote": {
+      "command": "ssh",
+      "args": [
+        "-i", "~/.ssh/id_ed25519",
+        "user@hermes-server.example.com",
+        "API_URL=https://intel.example.com HERMES_API_KEY=mei_live_secret_key uv run --directory /opt/mei-hermes python agents/hermes/mcp/server.py"
+      ]
+    }
+  }
+}
+```
+
+#### Option 3: Containerized Hermes MCP Bridge on Separated Host
+Build a minimal standalone container on the separated Hermes server:
+
+```dockerfile
+# Dockerfile.hermes (placed on separated server)
+FROM python:3.13-slim
+COPY --from=ghcr.io/astral-sh/uv:latest /uv /bin/uv
+WORKDIR /app
+COPY agents/hermes /app/agents/hermes
+COPY pyproject.toml uv.lock /app/
+RUN uv sync --frozen
+ENV API_URL="https://intel.example.com"
+ENV HERMES_API_KEY=""
+ENTRYPOINT ["uv", "run", "python", "agents/hermes/mcp/server.py"]
+```
+
+Run container interactively over stdio:
+```bash
+docker run -i --rm \
+  -e API_URL="https://intel.example.com" \
+  -e HERMES_API_KEY="mei_live_secret_key_12345" \
+  mei-hermes-mcp
+```
+
+---
+
+### 6.4 Step-by-Step Configuration Guide
 
 #### Step 1: Verify Application & API Health
-Before configuring Hermes, ensure the FastAPI application and backend services are active and healthy.
+Before configuring Hermes, verify that the FastAPI backend health endpoints respond cleanly from the separated Hermes host:
 
 ```bash
-# Check basic API health
-curl -f http://localhost:8000/api/v1/health/live
-
-# Check database & readiness status
-curl -f http://localhost:8000/api/v1/health/ready
+# Test from the separated Hermes server terminal
+curl -f https://intel.example.com/api/v1/health/live
+curl -f https://intel.example.com/api/v1/health/ready
 ```
 
 #### Step 2: Issue a Dedicated Scoped API Key
-Hermes requires a valid API key (prefixed with `mei_`). Do not use default or placeholder keys in production. Assign API key scopes based on the required role profile:
+Issue an API key starting with `mei_` on the platform server for the Hermes server identity. Assign scopes based on operational requirements:
 
 | Profile Role | Required Scopes | Intended Capability |
 |---|---|---|
@@ -219,16 +324,14 @@ Hermes requires a valid API key (prefixed with `mei_`). Do not use default or pl
 #### Step 3: Configure Environment Variables
 Hermes MCP server relies on two primary environment variables:
 
-| Variable | Description | Development / Production Value |
-|---|---|---|
-| `API_URL` | Base URL of the FastAPI server | `http://localhost:8000` (Local), `http://api:8000` (Docker Compose network), or `https://intel.example.com` (Prod) |
-| `HERMES_API_KEY` | Bearer API token created in Step 2 | `mei_live_secret_key_12345` |
+| Variable | Description | Value for Local Setup | Value for Separated Server |
+|---|---|---|---|
+| `API_URL` | Base URL of the FastAPI server | `http://localhost:8000` | `https://intel.example.com` or `http://192.168.1.50:8000` |
+| `HERMES_API_KEY` | Bearer API token created in Step 2 | `mei_dev_secret_key` | `mei_live_secret_key_12345` |
 
 #### Step 4: Configure the MCP Client
 
-##### Option A: Claude Desktop Configuration
-Add the following entry to your `claude_desktop_config.json` (located at `%APPDATA%\Claude\claude_desktop_config.json` on Windows or `~/Library/Application Support/Claude/claude_desktop_config.json` on macOS):
-
+##### Local Host Configuration (`claude_desktop_config.json`)
 ```json
 {
   "mcpServers": {
@@ -243,38 +346,27 @@ Add the following entry to your `claude_desktop_config.json` (located at `%APPDA
       ],
       "env": {
         "API_URL": "http://localhost:8000",
-        "HERMES_API_KEY": "mei_your_generated_api_key_here"
+        "HERMES_API_KEY": "mei_live_secret_key_12345"
       }
     }
   }
 }
 ```
 
-##### Option B: Generic MCP Client / Profile Configuration
-For generic MCP runners, use standard `stdio` transport settings:
-
+##### Separated Remote Server Profile (`mcp_config.json`)
 ```json
 {
-  "name": "middle-east-intelligence",
+  "name": "middle-east-intelligence-remote",
   "transport": "stdio",
   "command": "uv",
   "args": ["run", "python", "agents/hermes/mcp/server.py"],
-  "cwd": "/path/to/middle-east-geopolitic",
+  "cwd": "/opt/mei-hermes",
   "env": {
-    "API_URL": "http://localhost:8000",
-    "HERMES_API_KEY": "mei_your_generated_api_key_here"
+    "API_URL": "https://intel.example.com",
+    "HERMES_API_KEY": "mei_live_secret_key_12345"
   },
   "system_prompt_file": "agents/hermes/SYSTEM.md"
 }
-```
-
-##### Option C: PowerShell / Command Line Direct Launch
-To test running the MCP server interactively from PowerShell (diagnostics output to `stderr`):
-
-```powershell
-$env:API_URL = "http://localhost:8000"
-$env:HERMES_API_KEY = "mei_your_generated_api_key_here"
-uv run python agents/hermes/mcp/server.py
 ```
 
 > [!NOTE]
@@ -287,11 +379,11 @@ Always load [`agents/hermes/SYSTEM.md`](file:///c:/Users/a.ekbatani/source/perso
 - Requiring explicit user confirmation prior to executing consequential write or approval operations.
 
 #### Step 6: Verification & Validation
-1. **Start the MCP Client**: Launch your MCP client (or restart Claude Desktop).
+1. **Start the MCP Client**: Launch your MCP client (or restart Claude Desktop/Hermes agent).
 2. **Inspect Tool Availability**: Confirm that Hermes registers tools such as `search_intelligence`, `get_event`, `get_active_scenarios`, `launch_investigation`, and `record_analyst_assessment`.
 3. **Execute a Test Query**: Ask Hermes:
    > "Search the intelligence database for recent events in Lebanon."
-4. **Audit Log Verification**: Verify that HTTP requests appear in the FastAPI backend log with the correct API key context.
+4. **Audit Log Verification**: Check the FastAPI backend server logs to verify that HTTP requests arrive with the correct Bearer API key context and IP address of the separated Hermes server.
 
 ---
 

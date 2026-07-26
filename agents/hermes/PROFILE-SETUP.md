@@ -121,11 +121,29 @@ standard output. Hermes should own the process.
 
 ### API address by deployment topology
 
-| Where Hermes runs | `API_URL` |
-| --- | --- |
-| Same Windows/macOS/Linux host as `make dev` or Compose | `http://localhost:8000` |
-| A container on this repository's Compose network | `http://api:8000` |
-| Another machine | The HTTPS API origin exposed by the deployment, for example `https://intel.example.com` |
+| Where Hermes runs | `API_URL` | Setup Method |
+| --- | --- | --- |
+| Same host as `make dev` or Compose | `http://localhost:8000` | Native local execution |
+| Container on Compose network | `http://api:8000` | Docker Compose internal network |
+| Separated remote server / VM | `https://intel.example.com` | Remote host execution or SSH stdio tunnel |
+
+### Separated Remote Server (SSH stdio Tunneling Example)
+
+When Hermes runs on a separated remote host while being invoked by a local client (e.g. Claude Desktop):
+
+```json
+{
+  "name": "middle-east-intelligence-remote",
+  "command": "ssh",
+  "args": [
+    "-i", "~/.ssh/id_ed25519",
+    "user@hermes-server.example.com",
+    "API_URL=https://intel.example.com HERMES_API_KEY=<secret mei_ key> uv run --directory /opt/mei-hermes python agents/hermes/mcp/server.py"
+  ]
+}
+```
+
+For full separated host deployment, firewall rules, and container setups, see [`docs/03-deployment-and-operations.md#6-hermes-mcp-agent-operator-setup`](file:///c:/Users/a.ekbatani/source/personal/middle-east-geopolitic/docs/03-deployment-and-operations.md#6-hermes-mcp-agent-operator-setup).
 
 For a remote deployment, use HTTPS, restrict network access to the API, and
 rotate the API key through the secret manager. Never expose database,

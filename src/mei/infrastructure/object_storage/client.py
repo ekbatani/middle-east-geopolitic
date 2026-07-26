@@ -78,8 +78,15 @@ class ObjectStorage:
     def _ensure_bucket_sync(self) -> None:
         try:
             self._client.head_bucket(Bucket=self._bucket)
-        except ClientError:
-            self._client.create_bucket(Bucket=self._bucket)
+        except ClientError as exc:
+            error_code = str(exc.response.get("Error", {}).get("Code", ""))
+            if error_code in ("404", "NoSuchBucket", "NotFound", "403"):
+                try:
+                    self._client.create_bucket(Bucket=self._bucket)
+                except ClientError as create_exc:
+                    create_code = str(create_exc.response.get("Error", {}).get("Code", ""))
+                    if create_code not in ("BucketAlreadyOwnedByYou", "BucketAlreadyExists", "409", "403"):
+                        raise
 
     async def put_bytes(self, key: str, data: bytes, *, content_type: str) -> None:
         await asyncio.to_thread(
