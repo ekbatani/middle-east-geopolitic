@@ -11,6 +11,11 @@ from botocore.exceptions import ClientError
 from mei.shared.config import get_settings
 
 
+from mei.shared.logging import get_logger
+
+logger = get_logger(__name__)
+
+
 @lru_cache
 def _get_boto_client() -> BaseClient:
     settings = get_settings()
@@ -79,14 +84,15 @@ class ObjectStorage:
         try:
             self._client.head_bucket(Bucket=self._bucket)
         except ClientError as exc:
-            error_code = str(exc.response.get("Error", {}).get("Code", ""))
-            if error_code in ("404", "NoSuchBucket", "NotFound", "403"):
-                try:
-                    self._client.create_bucket(Bucket=self._bucket)
-                except ClientError as create_exc:
-                    create_code = str(create_exc.response.get("Error", {}).get("Code", ""))
-                    if create_code not in ("BucketAlreadyOwnedByYou", "BucketAlreadyExists", "409", "403"):
-                        raise
+            try:
+                self._client.create_bucket(Bucket=self._bucket)
+            except ClientError as create_exc:
+                logger.warning(
+                    "object_storage.ensure_bucket_bypassed",
+                    bucket=self._bucket,
+                    head_error=str(exc),
+                    create_error=str(create_exc),
+                )
 
     async def put_bytes(self, key: str, data: bytes, *, content_type: str) -> None:
         await asyncio.to_thread(

@@ -28,16 +28,18 @@ from mei.infrastructure.object_storage.client import ObjectStorage
 
 
 @pytest.mark.asyncio
-async def test_ensure_bucket_handles_forbidden_and_conflict() -> None:
+async def test_ensure_bucket_handles_signature_does_not_match() -> None:
     storage = ObjectStorage(bucket="test-bucket")
     mock_client = MagicMock()
-    # head_bucket raises 403, create_bucket raises 403
     mock_client.head_bucket.side_effect = ClientError({"Error": {"Code": "403"}}, "HeadBucket")
-    mock_client.create_bucket.side_effect = ClientError({"Error": {"Code": "403"}}, "CreateBucket")
+    mock_client.create_bucket.side_effect = ClientError(
+        {"Error": {"Code": "SignatureDoesNotMatch"}}, "CreateBucket"
+    )
     storage._client = mock_client
 
     # Should not raise exception
     await storage.ensure_bucket()
     mock_client.head_bucket.assert_called_once_with(Bucket="test-bucket")
     mock_client.create_bucket.assert_called_once_with(Bucket="test-bucket")
+
 
