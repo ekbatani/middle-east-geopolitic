@@ -26,7 +26,13 @@ class DocumentRepository:
     async def list_all(
         self, *, source_id: UUID | None = None, limit: int = 50, offset: int = 0
     ) -> list[Document]:
-        stmt = select(Document).order_by(Document.id.desc()).limit(limit).offset(offset)
+        stmt = (
+            select(Document)
+            .options(selectinload(Document.chunks))
+            .order_by(Document.id.desc())
+            .limit(limit)
+            .offset(offset)
+        )
         if source_id is not None:
             stmt = stmt.where(Document.source_id == source_id)
         result = await self._session.execute(stmt)
