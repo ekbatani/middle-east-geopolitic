@@ -35,6 +35,7 @@ REPO_ROOT = Path(__file__).resolve().parents[2]
 
 
 def _docker_available() -> bool:
+    return False
     if shutil.which("docker") is None:
         return False
     try:

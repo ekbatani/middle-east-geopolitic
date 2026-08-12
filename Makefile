@@ -1,4 +1,4 @@
-.PHONY: install dev worker beat migrate seed test lint typecheck format compose-up compose-down
+.PHONY: install dev migrate seed test lint typecheck format compose-up compose-down
 
 install:
 	uv sync
@@ -6,11 +6,7 @@ install:
 dev:
 	uv run uvicorn apps.api.main:app --reload --host 0.0.0.0 --port 8000
 
-worker:
-	uv run celery -A apps.worker.celery_app worker --loglevel=INFO
 
-beat:
-	uv run celery -A apps.worker.celery_app beat --loglevel=INFO
 
 migrate:
 	uv run alembic upgrade head

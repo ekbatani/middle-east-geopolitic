@@ -4,7 +4,6 @@ from uuid import UUID
 
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from apps.worker.celery_app import celery_app
 from mei.application.services.source_ingestion import SourceIngestionService
 from mei.domain.sources.models import SourceEndpoint
 from mei.infrastructure.collection.http_fetcher import fetch_url, validate_url_security
@@ -27,29 +26,24 @@ _CIRCUIT_BREAKER_FAILURE_COUNT = 10
 _AUDIT_FAILURE_THRESHOLD = 5
 
 
-@celery_app.task(name="apps.worker.tasks.collect.collect_critical_feeds")
 def collect_critical_feeds() -> None:
     """Poll high-priority source endpoints (design doc section 24.1: every 10 minutes)."""
     asyncio.run(_collect_feeds_async(schedule="critical"))
 
 
-@celery_app.task(name="apps.worker.tasks.collect.collect_normal_feeds")
 def collect_normal_feeds() -> None:
     """Poll standard-priority source endpoints (design doc section 24.1: hourly)."""
     asyncio.run(_collect_feeds_async(schedule="normal"))
 
 
-@celery_app.task(name="apps.worker.tasks.collect.retry_failed_endpoints")
 def retry_failed_endpoints() -> None:
     asyncio.run(_retry_failed_endpoints_async())
 
 
-@celery_app.task(name="apps.worker.tasks.collect.audit_source_failures")
 def audit_source_failures() -> None:
     asyncio.run(_audit_source_failures_async())
 
 
-@celery_app.task(name="apps.worker.tasks.collect.archive_old_raw_data")
 def archive_old_raw_data() -> None:
     """Report documents past the retention window.
 
@@ -60,7 +54,6 @@ def archive_old_raw_data() -> None:
     asyncio.run(_archive_old_raw_data_async())
 
 
-@celery_app.task(name="apps.worker.tasks.collect.fetch_and_archive_document")
 def fetch_and_archive_document(source_endpoint_id: str, url: str) -> None:
     """Fetch a single URL under the SSRF-safe HTTP policy and archive raw bytes.
 
@@ -201,7 +194,7 @@ async def _archive_old_raw_data_async() -> None:
 
 
 def _chain_translation(document_ids: list[UUID]) -> None:
-    from apps.worker.tasks.translate import translate_document
+    from apps.worker.tasks.translate import _translate_document_async
 
     for document_id in document_ids:
-        translate_document.delay(str(document_id))
+        asyncio.create_task(_translate_document_async(str(document_id)))

@@ -23,10 +23,46 @@ logger = get_logger(__name__)
 # State B's airspace?" searches on "State", "violate", "airspace" rather
 # than matching everything via stopwords.
 _STOPWORDS = {
-    "the", "a", "an", "is", "are", "was", "were", "of", "to", "in", "on",
-    "for", "and", "or", "did", "does", "do", "will", "has", "have", "had",
-    "what", "how", "why", "who", "when", "where", "which", "with", "that",
-    "this", "be", "been", "being", "at", "by", "from", "as", "it", "its",
+    "the",
+    "a",
+    "an",
+    "is",
+    "are",
+    "was",
+    "were",
+    "of",
+    "to",
+    "in",
+    "on",
+    "for",
+    "and",
+    "or",
+    "did",
+    "does",
+    "do",
+    "will",
+    "has",
+    "have",
+    "had",
+    "what",
+    "how",
+    "why",
+    "who",
+    "when",
+    "where",
+    "which",
+    "with",
+    "that",
+    "this",
+    "be",
+    "been",
+    "being",
+    "at",
+    "by",
+    "from",
+    "as",
+    "it",
+    "its",
 }
 
 
@@ -122,9 +158,10 @@ class InvestigationService:
             input_json={},
         )
 
-        # Trigger celery task asynchronously
-        from apps.worker.tasks.investigate import run_investigation
-        run_investigation.delay(str(investigation.id))
+        # Run asynchronously inline
+        import asyncio
+
+        asyncio.create_task(self.execute_investigation(investigation.id))
 
         return investigation
 
@@ -152,12 +189,8 @@ class InvestigationService:
 
                 if step.step_type == "source_search":
                     step.output_json = {
-                        "documents_found": [
-                            {"id": str(d.id), "title": d.title} for d in documents
-                        ],
-                        "events_found": [
-                            {"id": str(e.id), "title": e.title} for e in events
-                        ],
+                        "documents_found": [{"id": str(d.id), "title": d.title} for d in documents],
+                        "events_found": [{"id": str(e.id), "title": e.title} for e in events],
                     }
                 elif step.step_type == "claim_extraction":
                     step.output_json = {
@@ -165,8 +198,12 @@ class InvestigationService:
                             {
                                 "id": str(c.id),
                                 "claim": c.claim_text,
-                                "claimant_actor_id": str(c.claimant_actor_id) if c.claimant_actor_id else None,
-                                "subject_actor_id": str(c.subject_actor_id) if c.subject_actor_id else None,
+                                "claimant_actor_id": str(c.claimant_actor_id)
+                                if c.claimant_actor_id
+                                else None,
+                                "subject_actor_id": str(c.subject_actor_id)
+                                if c.subject_actor_id
+                                else None,
                                 "verification_status": str(c.verification_status),
                                 "confidence": c.confidence,
                             }
@@ -196,7 +233,9 @@ class InvestigationService:
             report = Report(
                 report_type=ReportType.CONFLICT_BRIEF,
                 title=f"Investigation Brief: {investigation.title}",
-                content_markdown=self._render_report(investigation, documents, events, claims, comparison),
+                content_markdown=self._render_report(
+                    investigation, documents, events, claims, comparison
+                ),
                 status=ReportStatus.GENERATED,
             )
             self._session.add(report)
@@ -206,7 +245,11 @@ class InvestigationService:
             logger.info("investigation.execute.success", investigation_id=str(investigation_id))
 
         except Exception as exc:
-            logger.exception("investigation.execute.failed", investigation_id=str(investigation_id), error=str(exc))
+            logger.exception(
+                "investigation.execute.failed",
+                investigation_id=str(investigation_id),
+                error=str(exc),
+            )
             investigation.status = "failed"
             investigation.completed_at = utcnow()
             investigation.result_summary = f"Execution failed due to: {exc}"
@@ -316,7 +359,10 @@ class InvestigationService:
             *([f"- {e.title} (`{e.id}`)" for e in events] or ["- None found."]),
             "",
             "## Matched Documents",
-            *([f"- {d.title or d.canonical_url} (`{d.id}`)" for d in documents] or ["- None found."]),
+            *(
+                [f"- {d.title or d.canonical_url} (`{d.id}`)" for d in documents]
+                or ["- None found."]
+            ),
             "",
             "## Claims",
             *(

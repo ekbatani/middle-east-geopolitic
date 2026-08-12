@@ -3,7 +3,6 @@ import operator as operator_module
 from collections.abc import Callable
 from uuid import UUID
 
-from apps.worker.celery_app import celery_app
 from mei.infrastructure.database.session import get_session_factory
 from mei.infrastructure.messaging.telegram import TelegramClient
 from mei.infrastructure.repositories.monitors import MonitorRepository
@@ -41,7 +40,6 @@ def evaluate_threshold(value: object, operator: str, threshold: object) -> bool:
     return comparator(observed, target) if comparator else False
 
 
-@celery_app.task(name="apps.worker.tasks.dispatch_notifications.evaluate_monitors")
 def evaluate_monitors() -> None:
     """Evaluate enabled monitors and enqueue notifications for triggered ones."""
     asyncio.run(_evaluate_monitors_async())
@@ -72,13 +70,18 @@ async def _evaluate_monitors_async() -> None:
                     val = cond.get("value")
 
                     if rel_id and val is not None:
-                        obs = await relationships_repo.get_latest_observation(UUID(str(rel_id)), as_of=now)
+                        obs = await relationships_repo.get_latest_observation(
+                            UUID(str(rel_id)), as_of=now
+                        )
                         obs_val = getattr(obs, str(field), None) if obs else None
                         if (
                             obs is not None
                             and obs_val is not None
                             and evaluate_threshold(obs_val, str(op), val)
-                            and (not monitor.last_triggered_at or obs.observed_at > monitor.last_triggered_at)
+                            and (
+                                not monitor.last_triggered_at
+                                or obs.observed_at > monitor.last_triggered_at
+                            )
                         ):
                             triggered = True
                             trigger_time = obs.observed_at
@@ -98,9 +101,13 @@ async def _evaluate_monitors_async() -> None:
                             scope_id=UUID(str(country_id)),
                             as_of=now,
                         )
-                        if assessment and evaluate_threshold(assessment.final_score, str(op), val) and (
-                            not monitor.last_triggered_at
-                            or assessment.assessed_at > monitor.last_triggered_at
+                        if (
+                            assessment
+                            and evaluate_threshold(assessment.final_score, str(op), val)
+                            and (
+                                not monitor.last_triggered_at
+                                or assessment.assessed_at > monitor.last_triggered_at
+                            )
                         ):
                             triggered = True
                             trigger_time = assessment.assessed_at
@@ -117,7 +124,7 @@ async def _evaluate_monitors_async() -> None:
                         delivery_channel=monitor.delivery_channel,
                     )
                     monitor.last_triggered_at = trigger_time or now
-                    send_notification.delay(str(notif.id))
+                    asyncio.create_task(_send_notification_async(str(notif.id)))
 
                 monitor.last_evaluated_at = now
 
@@ -131,7 +138,6 @@ async def _evaluate_monitors_async() -> None:
         await session.commit()
 
 
-@celery_app.task(name="apps.worker.tasks.dispatch_notifications.send_notification")
 def send_notification(notification_id: str) -> None:
     """Deliver a single notification on its configured channel."""
     asyncio.run(_send_notification_async(notification_id))

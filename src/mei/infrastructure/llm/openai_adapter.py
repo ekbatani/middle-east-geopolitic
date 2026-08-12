@@ -1,3 +1,4 @@
+from typing import Any
 import base64
 from typing import TypeVar
 
@@ -34,7 +35,7 @@ class OpenAIStructuredLLM:
             raise LLMConfigurationError("LLM_API_KEY is not configured")
         resolved_base_url = base_url or settings.llm_base_url or None
         if client is None:
-            client_kwargs: dict = {"api_key": resolved_key}
+            client_kwargs: dict[str, Any] = {"api_key": resolved_key}
             if resolved_base_url:
                 client_kwargs["base_url"] = resolved_base_url
             if default_headers:

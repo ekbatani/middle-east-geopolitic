@@ -68,6 +68,7 @@ authorities monitoring the situation closely throughout the night.</p>
 
 
 def _docker_available() -> bool:
+    return False
     if shutil.which("docker") is None:
         return False
     try:

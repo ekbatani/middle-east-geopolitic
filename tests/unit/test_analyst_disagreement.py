@@ -2,6 +2,7 @@ from hypothesis import given
 from hypothesis import strategies as st
 
 from mei.application.services.analyst_disagreement import classify_disagreement
+from typing import cast
 
 
 def test_unanimous_stance_with_tight_scores_is_not_disagreement() -> None:

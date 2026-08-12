@@ -17,12 +17,6 @@ class Settings(BaseSettings):
     app_secret_key: str = "change-me-to-a-random-secret"
 
     database_url: str = "postgresql+asyncpg://mei:mei@localhost:5432/mei"
-    redis_url: str = "redis://localhost:6379/0"
-
-    s3_endpoint_url: str = "http://localhost:9000"
-    s3_access_key: str = "mei"
-    s3_secret_key: str = "mei-secret-key"
-    s3_bucket: str = "mei-raw"
 
     llm_provider: str = "openai"
     llm_model: str = "gpt-4o-mini"

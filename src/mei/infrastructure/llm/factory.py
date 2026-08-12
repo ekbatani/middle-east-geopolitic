@@ -2,7 +2,6 @@ from mei.infrastructure.llm.openai_adapter import OpenAIStructuredLLM
 from mei.infrastructure.llm.protocol import StructuredLLM
 from mei.shared.config import get_settings
 
-
 PROVIDER_BASE_URLS: dict[str, str] = {
     "openrouter": "https://openrouter.ai/api/v1",
     "opencode_go": "https://api.opencode.ai/v1",

@@ -21,7 +21,10 @@ def test_extract_keywords_empty_for_only_stopwords() -> None:
 
 def test_score_narrative_comparison_no_claims_found() -> None:
     result = score_narrative_comparison(
-        claim_count=0, supporting_evidence_count=0, contradicting_evidence_count=0, claim_confidences=[]
+        claim_count=0,
+        supporting_evidence_count=0,
+        contradicting_evidence_count=0,
+        claim_confidences=[],
     )
     assert result["confidence"] == 0.0
     assert result["divergence_score"] == 0.0
@@ -30,7 +33,10 @@ def test_score_narrative_comparison_no_claims_found() -> None:
 
 def test_score_narrative_comparison_claims_without_confidence_scores_low() -> None:
     result = score_narrative_comparison(
-        claim_count=2, supporting_evidence_count=0, contradicting_evidence_count=0, claim_confidences=[]
+        claim_count=2,
+        supporting_evidence_count=0,
+        contradicting_evidence_count=0,
+        claim_confidences=[],
     )
     assert result["confidence"] == 0.3
     assert "no contradicting evidence" in result["comparison_summary"]

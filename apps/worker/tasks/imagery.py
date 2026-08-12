@@ -4,7 +4,6 @@ from uuid import UUID
 from pydantic import BaseModel, Field
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from apps.worker.celery_app import celery_app
 from mei.domain.imagery.models import ImageEvidence
 from mei.infrastructure.database.session import get_session_factory
 from mei.infrastructure.llm.factory import get_structured_llm
@@ -30,7 +29,6 @@ class ImageAnalysisResult(BaseModel):
     confidence: float = Field(ge=0, le=1)
 
 
-@celery_app.task(name="apps.worker.tasks.imagery.analyze_image")
 def analyze_image(image_id: str) -> None:
     """Run the vision-model analysis pass over a submitted image."""
     asyncio.run(_analyze_image_async(image_id))

@@ -1,7 +1,6 @@
 import asyncio
 from uuid import UUID
 
-from apps.worker.celery_app import celery_app
 from mei.application.services.report_generator import ReportGenerator
 from mei.infrastructure.database.session import get_session_factory
 from mei.infrastructure.llm.factory import get_structured_llm
@@ -20,19 +19,16 @@ def _try_get_llm() -> StructuredLLM | None:
         return None
 
 
-@celery_app.task(name="apps.worker.tasks.generate_reports.generate_daily_brief")
 def generate_daily_brief() -> None:
     """Generate the daily brief report (design doc section 24.1/25.3)."""
     asyncio.run(_generate_async(ReportType.DAILY_BRIEF))
 
 
-@celery_app.task(name="apps.worker.tasks.generate_reports.generate_weekly_outlook")
 def generate_weekly_outlook() -> None:
     """Generate the weekly outlook report (design doc section 24.1)."""
     asyncio.run(_generate_async(ReportType.WEEKLY_OUTLOOK))
 
 
-@celery_app.task(name="apps.worker.tasks.generate_reports.generate_report")
 def generate_report(report_type: str, scope_type: str | None, scope_id: str | None) -> None:
     """Generate a single report of the given type and scope."""
     asyncio.run(

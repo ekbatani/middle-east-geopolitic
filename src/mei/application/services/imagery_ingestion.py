@@ -17,7 +17,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from mei.domain.imagery.models import ImageEvidence
 from mei.infrastructure.collection.http_fetcher import fetch_url, validate_url_security
-from mei.infrastructure.object_storage.client import ObjectStorage, build_imagery_object_key
+from mei.infrastructure.object_storage_mock import ObjectStorage, build_imagery_object_key
 from mei.infrastructure.repositories.imagery import ImageryRepository
 from mei.shared.ids import uuid7
 from mei.shared.logging import get_logger
@@ -95,12 +95,18 @@ class ImageryIngestionService:
 
     @staticmethod
     def _enqueue_analysis(image_id: UUID) -> None:
-        # Local import: the Celery task module lives downstream of the
-        # application layer (same reasoning as
-        # `InvestigationService.create` -> `run_investigation.delay`).
-        from apps.worker.tasks.imagery import analyze_image
+        import asyncio
 
-        analyze_image.delay(str(image_id))
+        async def _analyze() -> None:
+            from mei.application.services.imagery_analysis import ImageryAnalysisService
+            from mei.infrastructure.database.session import get_session_factory
+
+            session_factory = get_session_factory()
+            async with session_factory() as s:
+                await ImageryAnalysisService(s).analyze_image(image_id)
+                await s.commit()
+
+        asyncio.create_task(_analyze())
 
 
 __all__ = ["ImageryIngestionService"]

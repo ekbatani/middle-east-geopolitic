@@ -12,7 +12,7 @@ from apps.api.dependencies import SessionDep, require_scopes
 from mei.application.services.imagery_ingestion import ImageryIngestionService
 from mei.domain.imagery.models import ImageEvidence
 from mei.infrastructure.auth.principal import Principal
-from mei.infrastructure.object_storage.client import ObjectStorage
+from mei.infrastructure.object_storage_mock import ObjectStorage
 from mei.infrastructure.repositories.evidence import EvidenceRepository
 from mei.infrastructure.repositories.imagery import ImageryRepository
 from mei.shared.enums import Scope, VerificationStatus
@@ -146,10 +146,19 @@ async def reanalyze_image(
     if image is None:
         raise NotFoundError(f"Image {image_id} not found")
 
-    # Local import: same reasoning as `ImageryIngestionService._enqueue_analysis`.
-    from apps.worker.tasks.imagery import analyze_image
+    import asyncio
 
-    analyze_image.delay(str(image.id))
+    from mei.application.services.imagery_analysis import ImageryAnalysisService
+
+    async def _analyze() -> None:
+        from mei.infrastructure.database.session import get_session_factory
+
+        session_factory = get_session_factory()
+        async with session_factory() as s:
+            await ImageryAnalysisService(s).analyze_image(image.id)
+            await s.commit()
+
+    asyncio.create_task(_analyze())
     await audit(
         session,
         principal,

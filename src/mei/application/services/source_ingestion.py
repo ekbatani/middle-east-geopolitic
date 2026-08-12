@@ -10,7 +10,7 @@ from mei.domain.sources.models import Source
 from mei.infrastructure.collection.dedup import compute_fingerprint
 from mei.infrastructure.collection.http_fetcher import fetch_url, validate_url_security
 from mei.infrastructure.collection.parser import PARSER_VERSION, chunk_text, extract_text
-from mei.infrastructure.object_storage.client import ObjectStorage, build_raw_object_key
+from mei.infrastructure.object_storage_mock import ObjectStorage, build_raw_object_key
 from mei.infrastructure.repositories.documents import DocumentRepository
 from mei.infrastructure.repositories.sources import SourceRepository
 from mei.shared.enums import EndpointType, SourceType
