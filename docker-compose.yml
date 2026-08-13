@@ -53,21 +53,5 @@ services:
     depends_on:
       - api
 
-  prometheus:
-    image: prom/prometheus:latest
-    volumes:
-      - ./configs/observability/prometheus.yml:/etc/prometheus/prometheus.yml:ro
-    ports:
-      - "9090:9090"
-
-  grafana:
-    image: grafana/grafana:latest
-    environment:
-      GF_SECURITY_ADMIN_PASSWORD: ${GRAFANA_ADMIN_PASSWORD:-admin}
-    ports:
-      - "3002:3000"
-    volumes:
-      - grafana-data:/var/lib/grafana
-
 volumes:
   postgres-data:
