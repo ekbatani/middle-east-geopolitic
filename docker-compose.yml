@@ -15,22 +15,11 @@ services:
       timeout: 5s
       retries: 10
 
-  migrate:
-    build:
-      context: .
-      target: api
-    command: ["sh", "-c", "alembic upgrade head && python scripts/seed.py"]
-    env_file: .env
-    environment:
-      DATABASE_URL: ${DATABASE_URL:-postgresql+asyncpg://mei:mei@postgres:5432/mei}
-    depends_on:
-      postgres:
-        condition: service_healthy
-
   api:
     build:
       context: .
       target: api
+    command: ["sh", "-c", "alembic upgrade head && python scripts/seed.py && uvicorn apps.api.main:app --host 0.0.0.0 --port 8000"]
     env_file: .env
     environment:
       DATABASE_URL: ${DATABASE_URL:-postgresql+asyncpg://mei:mei@postgres:5432/mei}
@@ -39,8 +28,6 @@ services:
     depends_on:
       postgres:
         condition: service_healthy
-      migrate:
-        condition: service_completed_successfully
 
   frontend:
     build:
