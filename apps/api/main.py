@@ -29,6 +29,7 @@ from apps.api.routers import (
     sources,
 )
 from mei.shared.config import get_settings
+from fastapi.middleware.cors import CORSMiddleware
 from mei.shared.errors import MeiError
 from mei.shared.logging import configure_logging
 
@@ -40,6 +41,14 @@ def create_app() -> FastAPI:
     app = FastAPI(
         title="Middle East Geopolitical Intelligence Platform API",
         version="0.1.0",
+    )
+
+    app.add_middleware(
+        CORSMiddleware,
+        allow_origins=["*"],
+        allow_credentials=True,
+        allow_methods=["*"],
+        allow_headers=["*"],
     )
 
     app.add_middleware(CorrelationIdMiddleware)
