@@ -33,6 +33,8 @@ services:
     build:
       context: ./apps/frontend
       dockerfile: Dockerfile
+      args:
+        NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL:-http://localhost:8000}
     ports:
       - "3003:3003"
     env_file: .env
