@@ -1,4 +1,4 @@
-"""phase5 hermes operator schema
+"""phase5 investigations and monitors schema
 
 Revision ID: a5b6c7d8e9f0
 Revises: f4a5b6c7d8e9

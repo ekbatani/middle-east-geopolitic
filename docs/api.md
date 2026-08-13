@@ -66,8 +66,8 @@ This document describes the FastAPI REST API specifications, authentication scop
 - `GET /scenarios`: Retrieve active scenario registers (e.g. `controlled_deescalation`, `systemic_regional_war`).
 - `POST /scenarios/simulate`: Run a non-canonical hypothetical simulation without altering production records.
 
-### 3.8 Intelligence Query & Hermes Operator Endpoints
-Purpose-built composite endpoints used by Hermes MCP operator:
+### 3.8 Intelligence Query & Operator Endpoints
+Purpose-built composite endpoints:
 - `POST /intelligence/search`: Hybrid full-text + vector search over documents and approved intelligence.
 - `POST /intelligence/country-brief`: Generate unified country intelligence assessment.
 - `POST /intelligence/relationship-comparison`: Compare bilateral relationships side-by-side across standardized dimensions.

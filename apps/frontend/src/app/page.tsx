@@ -128,9 +128,8 @@ export default function Home() {
               <div className="bg-white p-6 rounded-lg shadow-sm border border-gray-200">
                 <h3 className="text-lg font-medium mb-2">Getting Started</h3>
                 <p className="text-gray-600 mb-4">
-                  This frontend allows interaction with the MEI backend
-                  directly, bypassing the Hermes agent. Navigate through the
-                  sidebar to explore intelligence data.
+                  This frontend allows interaction with the MEI backend directly.
+                  Navigate through the sidebar to explore intelligence data.
                 </p>
               </div>
             </div>

@@ -1,4 +1,4 @@
-"""Purpose-built, read-only intelligence endpoints for Hermes (design doc section 21.4)."""
+"""Purpose-built, read-only intelligence endpoints (design doc section 21.4)."""
 
 from datetime import datetime
 from typing import Annotated

@@ -12,11 +12,9 @@ The platform is built for evidence-led analysis rather than open-ended news chat
 4. [API reference](docs/api.md)
 5. [Data model guide](docs/data-model.md)
 6. [Risk methodology](docs/risk-methodology.md)
-7. [Hermes agent integration](docs/hermes-integration.md)
 
 ## Architecture
 
-- **Hermes:** MCP-based operator for controlled queries, reports, monitoring, alerts, and investigation commands
 - **Celery + Redis:** collection and analytical background jobs
 - **MinIO/S3:** raw documents and generated report artifacts
 - **LLMs:** structured extraction, evidence comparison, bounded analysis, and report drafting
@@ -31,7 +29,7 @@ Phases 0–6 are complete:
 - **Phase 2:** RSS/HTTP collectors and source registry; parsing, language detection, and translation; deduplication; LLM claim/event extraction; entity resolution; analyst review queues.
 - **Phase 3:** relationship model and observation history; indicator definitions and observations; a deterministic risk-scoring engine with bounded LLM adjustment (`RiskEngine`); risk history and explanation APIs; country-brief and relationship-comparison endpoints.
 - **Phase 4:** scenario register and update workflow with sibling-family consistency checks (`ScenarioEngine`); forecast issuance and Brier-score outcome auditing (`ForecastAuditService`); daily/weekly/country/conflict report generation with LLM-optional drafting, Markdown rendering, and an approve/publish workflow (`ReportGenerator`); scenario, forecast, and report APIs; scheduled scenario-update and report-generation worker tasks.
-- **Phase 5:** Hermes operator with a constrained system prompt and an MCP server that calls authenticated FastAPI endpoints. It supports read-only intelligence queries, investigations and report generation, controlled source/note/assessment/imagery/monitor submission, and verified approval actions.
+- **Phase 5:** investigation workflow and monitors/alerts engine with authenticated API endpoints. It supports read-only intelligence queries, investigations and report generation, controlled source/note/assessment/imagery/monitor submission, and verified approval actions.
 - **Phase 6:** graph analytics and geospatial views; forecast-calibration dashboards; analyst disagreement tracking; multi-model review; and imagery-evidence ingestion and analysis.
 
 See the [implementation design](docs/02-implementation-design.md) for the complete architecture, data model, API boundaries, and delivery plan.
@@ -64,11 +62,3 @@ make lint
 make typecheck
 ```
 
-## Hermes operator
-
-The Hermes operator materials live in [`agents/hermes`](agents/hermes):
-
-- [`SYSTEM.md`](agents/hermes/SYSTEM.md) defines its evidence, attribution, and approval constraints.
-- [`mcp/server.py`](agents/hermes/mcp/server.py) exposes the operator tools through MCP over stdio.
-
-Hermes is an authenticated API client, not a direct database client or final approval authority.

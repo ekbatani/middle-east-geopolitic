@@ -48,8 +48,9 @@ services:
       dockerfile: Dockerfile
     ports:
       - "3003:3003"
+    env_file: .env
     environment:
-      - NEXT_PUBLIC_API_URL=http://localhost:8000
+      NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL:-http://localhost:8000}
     depends_on:
       - api
 

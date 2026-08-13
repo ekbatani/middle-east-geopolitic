@@ -2,10 +2,8 @@
 
 Loads the core actor set from `configs/actors.seed.yml` (skipping actors
 that already exist by canonical name) and provisions the local-development
-identity: an admin user plus one API key per Hermes credential tier
-described in section 23.7 of the implementation design. Re-running is safe
-for actors; API keys are minted fresh each run since they're secrets that
-should only ever be printed once.
+identity: an admin user plus initial system API key. Re-running is safe
+for actors.
 """
 
 import asyncio
@@ -43,25 +41,6 @@ RISK_INDICATORS_PATH = CONFIGS_DIR / "risk-indicators.yml"
 
 API_KEY_SCOPES: dict[str, list[Scope]] = {
     "admin": list(Scope),
-    "hermes-read": [Scope.INTELLIGENCE_READ, Scope.INVESTIGATIONS_READ],
-    "hermes-analyst": [
-        Scope.INTELLIGENCE_READ,
-        Scope.SOURCES_SUBMIT,
-        Scope.CLAIMS_CREATE,
-        Scope.EVENTS_CREATE,
-        Scope.INVESTIGATIONS_CREATE,
-        Scope.INVESTIGATIONS_READ,
-        Scope.MONITORS_MANAGE,
-        Scope.ANALYST_ASSESSMENTS_RECORD,
-        Scope.IMAGERY_SUBMIT,
-    ],
-    "hermes-approver": [
-        Scope.INTELLIGENCE_READ,
-        Scope.EVENTS_APPROVE,
-        Scope.CLAIMS_ASSESS,
-        Scope.REPORTS_APPROVE,
-        Scope.REVIEW_RESOLVE,
-    ],
 }
 
 
@@ -183,7 +162,7 @@ async def main_async() -> None:
             issued = await identity.issue_api_key(
                 user_id=user.id, name=key_name, scopes=[str(scope) for scope in scopes]
             )
-            logger.info("seed.api_key_issued", name=key_name, plaintext=issued.plaintext)
+            logger.info("seed.api_key_issued", name=key_name, key_id=str(issued.key_id))
 
         await session.commit()
 

@@ -34,7 +34,6 @@ class Settings(BaseSettings):
     jwt_audience: str = "mei-clients"
     jwt_access_token_ttl_seconds: int = Field(default=3600, gt=0)
 
-    hermes_api_key: str = ""
     telegram_bot_token: str = ""
     telegram_chat_id: str = ""
 

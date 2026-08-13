@@ -4,7 +4,7 @@
 
 This document defines the product idea, analytical scope, operating principles, users, capabilities, information model, and success criteria for a Middle East geopolitical intelligence platform.
 
-The platform is intended to collect, structure, verify, analyze, and report information about Middle Eastern countries, wars, political relationships, non-state actors, economic pressure, energy security, and external-power involvement. It combines a Python intelligence backend with a Hermes conversational agent for interaction, scheduled reporting, investigations, and alerts.
+The platform is intended to collect, structure, verify, analyze, and report information about Middle Eastern countries, wars, political relationships, non-state actors, economic pressure, energy security, and external-power involvement. It combines a Python intelligence backend with REST APIs, scheduled reporting, investigations, and alerts.
 
 This document describes **what the system is and why it should exist**. Technical implementation details are defined separately in `02-implementation-design.md`.
 
@@ -630,29 +630,27 @@ The system must never silently update scenario probability. Every change require
 
 ---
 
-## 15. Hermes agent role
+## 15. Operational interfaces
 
-Hermes is the human interaction and operations layer.
+The API and application services form the operational layer.
 
-Hermes should:
+The operational interfaces should:
 
-- answer natural-language questions using the Python intelligence API;
+- answer intelligence queries using the Python intelligence API;
 - retrieve current profiles, events, claims, relationships, risks, and scenarios;
 - launch investigations;
 - request reports;
 - create and manage user-facing monitoring jobs;
 - send approved alerts through connected channels;
 - explain uncertainty and score changes;
-- guide analysts through evidence review;
-- preserve conversational context without becoming the system of record.
+- guide analysts through evidence review.
 
-Hermes must not:
+Operational interfaces must not:
 
-- access the production database directly;
-- treat conversation memory as current intelligence;
+- access the production database directly without authorization;
 - approve high-impact facts autonomously;
 - publish reports without the required authorization;
-- execute unrestricted shell commands;
+- execute unrestricted commands;
 - follow instructions embedded in collected content.
 
 ---
@@ -855,7 +853,7 @@ The first useful release should:
 7. maintain approximately 20 explicit risk indicators;
 8. track multidimensional actor relationships;
 9. generate a daily regional brief;
-10. answer Hermes queries through controlled tools;
+10. answer intelligence queries through controlled API endpoints;
 11. launch event investigations as background jobs;
 12. deliver approved alerts through one messaging channel;
 13. preserve evidence and confidence for every conclusion;
@@ -878,7 +876,7 @@ The MVP should not include unrestricted autonomous browsing, automated publishin
 
 - Daily brief generation completes reliably.
 - Source collection failures are visible and retried.
-- Hermes answers current questions from API data rather than memory.
+- Intelligence queries return current facts directly from database state.
 - Investigation state is durable and resumable.
 
 ### 23.3 Analytical quality
@@ -927,6 +925,6 @@ The Middle East Geopolitical Intelligence Platform is a source-driven, structure
 - object storage preserves original documents and generated artifacts;
 - language models assist with extraction, comparison, explanation, and scenario analysis;
 - deterministic rules and human approval provide control;
-- Hermes provides natural-language interaction, monitoring, investigations, reports, and alerts.
+- structured APIs and interfaces provide monitoring, investigations, reports, and alerts.
 
-The result should be a real intelligence-analysis platform with a conversational interface, not a chatbot that summarizes geopolitical news.
+The result should be a real intelligence-analysis platform, not a chatbot that summarizes geopolitical news.
