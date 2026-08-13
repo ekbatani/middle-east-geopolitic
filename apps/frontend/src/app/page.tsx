@@ -1,17 +1,27 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import Image from "next/image";
 
 type HealthStatus = {
   status: string;
 };
+
+function getNormalizedApiUrl(rawUrl?: string): string {
+  let url = (rawUrl || "http://localhost:8000").trim();
+  if (!url) return "http://localhost:8000";
+  if (!/^https?:\/\//i.test(url) && !url.startsWith("/")) {
+    url = `http://${url}`;
+  }
+  return url;
+}
 
 export default function Home() {
   const [health, setHealth] = useState<HealthStatus | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
+  const API_URL = getNormalizedApiUrl(process.env.NEXT_PUBLIC_API_URL);
 
   useEffect(() => {
     async function checkHealth() {
@@ -38,9 +48,19 @@ export default function Home() {
   return (
     <div className="min-h-screen bg-gray-50 flex flex-col">
       <header className="bg-white border-b border-gray-200 py-4 px-6 flex items-center justify-between">
-        <h1 className="text-xl font-bold text-gray-900">
-          Middle East Geopolitical Intelligence Platform
-        </h1>
+        <div className="flex items-center gap-3">
+          <Image
+            src="/logo.png"
+            alt="MEI Logo"
+            width={40}
+            height={40}
+            className="h-10 w-auto object-contain"
+            priority
+          />
+          <h1 className="text-xl font-bold text-gray-900">
+            Middle East Geopolitical Intelligence Platform
+          </h1>
+        </div>
         <div className="flex items-center gap-2">
           <span className="text-sm text-gray-500">API Status:</span>
           {loading ? (
@@ -61,6 +81,16 @@ export default function Home() {
 
       <div className="flex flex-1">
         <aside className="w-64 bg-white border-r border-gray-200 p-4">
+          <div className="flex items-center gap-2 mb-4 pb-3 border-b border-gray-100">
+            <Image
+              src="/logo.png"
+              alt="MEI Logo"
+              width={28}
+              height={28}
+              className="h-7 w-auto object-contain"
+            />
+            <span className="font-semibold text-gray-800 text-sm">Navigation</span>
+          </div>
           <nav className="flex flex-col gap-2">
             <a
               href="#"
