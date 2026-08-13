@@ -33,7 +33,7 @@ from mei.domain.relationships.models import RelationshipObservation
 from mei.domain.reports.models import Report
 from mei.domain.risks.models import RiskAssessment
 from mei.infrastructure.llm.protocol import StructuredLLM
-from mei.infrastructure.object_storage.client import ObjectStorage
+from mei.infrastructure.object_storage_mock import ObjectStorage
 from mei.infrastructure.repositories.events import EventRepository
 from mei.infrastructure.repositories.relationships import RelationshipRepository
 from mei.infrastructure.repositories.reports import ReportRepository
@@ -338,7 +338,9 @@ class ReportGenerator:
         return "\n".join(lines) + "\n"
 
     @staticmethod
-    async def _archive(*, report_type: ReportType, generated_at: datetime, content: str) -> str | None:
+    async def _archive(
+        *, report_type: ReportType, generated_at: datetime, content: str
+    ) -> str | None:
         key = f"reports/{generated_at:%Y/%m/%d}/{report_type}-{generated_at:%H%M%S}.md"
         try:
             storage = ObjectStorage()

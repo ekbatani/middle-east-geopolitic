@@ -15,8 +15,12 @@ class Investigation(TimestampMixin, Base):
     id: Mapped[UUID] = mapped_column(primary_key=True, default=uuid7)
     title: Mapped[str] = mapped_column(String(300))
     question: Mapped[str] = mapped_column(Text)
-    status: Mapped[str] = mapped_column(String(30), default="pending", index=True)  # pending, running, completed, failed
-    priority: Mapped[str] = mapped_column(String(20), default="medium", index=True)  # low, medium, high
+    status: Mapped[str] = mapped_column(
+        String(30), default="pending", index=True
+    )  # pending, running, completed, failed
+    priority: Mapped[str] = mapped_column(
+        String(20), default="medium", index=True
+    )  # low, medium, high
     requested_by: Mapped[str] = mapped_column(String(200))
     assigned_to: Mapped[str | None] = mapped_column(String(200), default=None)
     started_at: Mapped[datetime | None] = mapped_column(default=None)
@@ -41,7 +45,9 @@ class InvestigationStep(Base):
     )
     step_type: Mapped[str] = mapped_column(String(50))
     sequence: Mapped[int] = mapped_column()
-    status: Mapped[str] = mapped_column(String(30), default="pending")  # pending, running, completed, failed
+    status: Mapped[str] = mapped_column(
+        String(30), default="pending"
+    )  # pending, running, completed, failed
     input_json: Mapped[dict[str, object]] = mapped_column(JSONB, default=dict)
     output_json: Mapped[dict[str, object]] = mapped_column(JSONB, default=dict)
     started_at: Mapped[datetime | None] = mapped_column(default=None)

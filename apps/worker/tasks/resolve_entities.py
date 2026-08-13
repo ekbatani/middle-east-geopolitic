@@ -2,7 +2,6 @@ import asyncio
 import json
 from uuid import UUID
 
-from apps.worker.celery_app import celery_app
 from mei.application.services.entity_resolution import EntityResolutionService
 from mei.infrastructure.database.session import get_session_factory
 from mei.shared.logging import get_logger
@@ -10,7 +9,6 @@ from mei.shared.logging import get_logger
 logger = get_logger(__name__)
 
 
-@celery_app.task(name="apps.worker.tasks.resolve_entities.resolve_candidate_actor")
 def resolve_candidate_actor(candidate_name: str, context_json: str) -> None:
     """Standalone re-resolution of one actor mention against `EntityResolutionService`.
 

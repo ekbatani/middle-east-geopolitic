@@ -1,7 +1,6 @@
 import asyncio
 from uuid import UUID
 
-from apps.worker.celery_app import celery_app
 from mei.application.services.multi_model_review import MultiModelReviewService
 from mei.infrastructure.database.session import get_session_factory
 from mei.infrastructure.llm.factory import get_secondary_structured_llm
@@ -11,7 +10,6 @@ from mei.shared.logging import get_logger
 logger = get_logger(__name__)
 
 
-@celery_app.task(name="apps.worker.tasks.multi_model_review.review_risk_assessment")
 def review_risk_assessment(risk_assessment_id: str) -> None:
     """Shadow-rerun a high-impact risk assessment with a second configured
     model and record whether it agrees with the primary result."""

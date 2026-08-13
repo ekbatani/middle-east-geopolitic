@@ -1,7 +1,6 @@
 import asyncio
 from uuid import UUID
 
-from apps.worker.celery_app import celery_app
 from mei.application.services.extraction import ExtractionService
 from mei.infrastructure.database.session import get_session_factory
 from mei.infrastructure.llm.factory import get_structured_llm
@@ -11,7 +10,6 @@ from mei.shared.logging import get_logger
 logger = get_logger(__name__)
 
 
-@celery_app.task(name="apps.worker.tasks.extract.extract_claims_and_events")
 def extract_claims_and_events(document_id: str) -> None:
     """Run structured LLM extraction of candidate claims and events (sections 14, 15)."""
     asyncio.run(_extract_claims_and_events_async(document_id))

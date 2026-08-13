@@ -1,7 +1,6 @@
 import asyncio
 from uuid import UUID
 
-from apps.worker.celery_app import celery_app
 from mei.infrastructure.database.session import get_session_factory
 from mei.infrastructure.repositories.documents import DocumentRepository
 from mei.infrastructure.translation.language_detection import detect_language
@@ -14,7 +13,6 @@ from mei.shared.time import utcnow
 logger = get_logger(__name__)
 
 
-@celery_app.task(name="apps.worker.tasks.translate.translate_document")
 def translate_document(document_id: str) -> None:
     """Detect language and translate a document's text when required (section 10.6)."""
     asyncio.run(_translate_document_async(document_id))
@@ -70,6 +68,6 @@ async def _translate_document_async(document_id: str) -> None:
 
 
 def _chain_extraction(document_id: str) -> None:
-    from apps.worker.tasks.extract import extract_claims_and_events
+    from apps.worker.tasks.extract import _extract_claims_and_events_async
 
-    extract_claims_and_events.delay(document_id)
+    asyncio.create_task(_extract_claims_and_events_async(document_id))

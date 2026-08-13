@@ -49,7 +49,9 @@ def upgrade() -> None:
         sa.PrimaryKeyConstraint("id", name=op.f("pk_investigations")),
     )
     op.create_index(op.f("ix_investigations_status"), "investigations", ["status"], unique=False)
-    op.create_index(op.f("ix_investigations_priority"), "investigations", ["priority"], unique=False)
+    op.create_index(
+        op.f("ix_investigations_priority"), "investigations", ["priority"], unique=False
+    )
 
     op.create_table(
         "investigation_steps",
@@ -122,8 +124,12 @@ def upgrade() -> None:
         ),
         sa.PrimaryKeyConstraint("id", name=op.f("pk_notifications")),
     )
-    op.create_index(op.f("ix_notifications_monitor_id"), "notifications", ["monitor_id"], unique=False)
-    op.create_index(op.f("ix_notifications_report_id"), "notifications", ["report_id"], unique=False)
+    op.create_index(
+        op.f("ix_notifications_monitor_id"), "notifications", ["monitor_id"], unique=False
+    )
+    op.create_index(
+        op.f("ix_notifications_report_id"), "notifications", ["report_id"], unique=False
+    )
     op.create_index(op.f("ix_notifications_status"), "notifications", ["status"], unique=False)
 
 

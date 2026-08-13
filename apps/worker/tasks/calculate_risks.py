@@ -1,7 +1,6 @@
 import asyncio
 from uuid import UUID
 
-from apps.worker.celery_app import celery_app
 from mei.application.services.risk_engine import RiskEngine
 from mei.infrastructure.database.session import get_session_factory
 from mei.infrastructure.llm.factory import get_structured_llm
@@ -22,7 +21,6 @@ def _try_get_llm() -> StructuredLLM | None:
         return None
 
 
-@celery_app.task(name="apps.worker.tasks.calculate_risks.recalculate_active_conflict_risks")
 def recalculate_active_conflict_risks() -> None:
     """Recompute relationship-scoped risk scores for every active relationship."""
     asyncio.run(_recalculate_active_conflict_risks_async())
@@ -64,7 +62,6 @@ async def _recalculate_active_conflict_risks_async() -> None:
     logger.info("calculate_risks.active_conflict_risks_recalculated", assessment_count=computed)
 
 
-@celery_app.task(name="apps.worker.tasks.calculate_risks.refresh_country_indicators")
 def refresh_country_indicators() -> None:
     """Pull slow-moving country-level indicator readings from external sources.
 
@@ -76,7 +73,6 @@ def refresh_country_indicators() -> None:
     logger.info("task.not_implemented", task="refresh_country_indicators")
 
 
-@celery_app.task(name="apps.worker.tasks.calculate_risks.calculate_risk_assessment")
 def calculate_risk_assessment(
     risk_definition_id: str, scope_type: str, scope_id: str | None
 ) -> None:

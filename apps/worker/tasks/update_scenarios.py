@@ -1,7 +1,6 @@
 import asyncio
 from uuid import UUID
 
-from apps.worker.celery_app import celery_app
 from mei.application.services.forecast_audit import ForecastAuditService
 from mei.application.services.scenario_engine import ScenarioEngine
 from mei.infrastructure.database.session import get_session_factory
@@ -20,7 +19,6 @@ def _try_get_llm() -> StructuredLLM | None:
         return None
 
 
-@celery_app.task(name="apps.worker.tasks.update_scenarios.evaluate_due_forecasts")
 def evaluate_due_forecasts() -> None:
     """Surface forecasts past their resolution date that are still open.
 
@@ -45,7 +43,6 @@ async def _evaluate_due_forecasts_async() -> None:
     )
 
 
-@celery_app.task(name="apps.worker.tasks.update_scenarios.update_scenario")
 def update_scenario(scenario_id: str) -> None:
     """Re-evaluate one scenario's trigger and invalidation conditions
     (design doc section 19.2), persisting a new `ScenarioAssessment`."""

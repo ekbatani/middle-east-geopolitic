@@ -315,9 +315,30 @@ class RiskEngine:
         if trigger_reason is None:
             return
 
-        from apps.worker.tasks.multi_model_review import review_risk_assessment
+        import asyncio
 
-        review_risk_assessment.delay(str(assessment.id))
+        from mei.application.services.multi_model_review import MultiModelReviewService
+
+        async def _run_review() -> None:
+            from mei.infrastructure.database.session import get_session_factory
+
+            session_factory = get_session_factory()
+            async with session_factory() as s:
+                from mei.infrastructure.llm.openai_adapter import OpenAIStructuredLLM
+                from mei.shared.config import get_settings
+
+                settings = get_settings()
+                secondary = OpenAIStructuredLLM(
+                    model=settings.llm_model, api_key=settings.llm_api_key or ""
+                )
+                await MultiModelReviewService(s).review_risk_assessment(
+                    assessment.id,
+                    secondary_llm=secondary,
+                    agreement_tolerance=settings.multi_model_review_agreement_tolerance,
+                )
+                await s.commit()
+
+        asyncio.create_task(_run_review())
 
     async def _get_llm_adjustment(
         self,

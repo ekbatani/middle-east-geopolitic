@@ -20,8 +20,12 @@ class Monitor(Base):
     schedule: Mapped[str | None] = mapped_column(String(100), default=None)
     delivery_channel: Mapped[str] = mapped_column(String(50), default="telegram")
     enabled: Mapped[bool] = mapped_column(Boolean, default=True, index=True)
-    last_evaluated_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), default=None)
-    last_triggered_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), default=None)
+    last_evaluated_at: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True), default=None
+    )
+    last_triggered_at: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True), default=None
+    )
 
     notifications: Mapped[list["Notification"]] = relationship(
         back_populates="monitor", cascade="all, delete-orphan"
@@ -42,7 +46,9 @@ class Notification(Base):
     title: Mapped[str] = mapped_column(String(300))
     body: Mapped[str] = mapped_column(Text)
     delivery_channel: Mapped[str] = mapped_column(String(50), default="telegram")
-    status: Mapped[str] = mapped_column(String(20), default="pending", index=True)  # pending, sent, failed
+    status: Mapped[str] = mapped_column(
+        String(20), default="pending", index=True
+    )  # pending, sent, failed
     sent_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), default=None)
     error_message: Mapped[str | None] = mapped_column(Text, default=None)
 

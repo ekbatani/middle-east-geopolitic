@@ -1,6 +1,5 @@
 from typing import Literal
 
-import redis.asyncio as redis
 from fastapi import APIRouter
 from pydantic import BaseModel
 from sqlalchemy import text
@@ -48,19 +47,6 @@ async def readiness(session: SessionDep) -> ReadinessResponse:
 @router.get("/dependencies", response_model=DependencyHealthResponse)
 async def dependency_health(settings: SettingsDep) -> DependencyHealthResponse:
     statuses: list[DependencyStatus] = []
-
-    try:
-        client = redis.from_url(  # type: ignore[no-untyped-call]
-            settings.redis_url, socket_connect_timeout=2
-        )
-        await client.ping()
-        await client.aclose()
-        statuses.append(DependencyStatus(name="redis", status="ok"))
-    except Exception:
-        statuses.append(DependencyStatus(name="redis", status="unavailable"))
-
-    object_storage_status = "not_configured" if not settings.s3_bucket else "ok"
-    statuses.append(DependencyStatus(name="object_storage", status=object_storage_status))
 
     llm_status = "not_configured" if not settings.llm_api_key else "ok"
     statuses.append(DependencyStatus(name="llm_provider", status=llm_status))
