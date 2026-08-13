@@ -74,7 +74,7 @@ The implementation must provide:
                 │                                     │
                 └──────────────────┬──────────────────┘
                                    │
-                          Celery workers and Beat
+                          Asynchronous background tasks
                                    │
 ┌──────────────────────────────────▼────────────────────────────┐
 │                   Collection and Analysis                     │
@@ -111,10 +111,9 @@ The implementation must provide:
 ### 4.4 Background processing
 
 - Redis
-- Celery
-- Celery Beat
+- Async background task runners
 
-Celery is sufficient for the MVP. Temporal can replace or supplement it if investigations later require complex, long-running, resumable orchestration with extensive human-in-the-loop steps.
+Background task runners are sufficient for system operations. Temporal can replace or supplement them if investigations later require complex, long-running, resumable orchestration with extensive human-in-the-loop steps.
 
 ### 4.5 Source collection
 
@@ -189,7 +188,6 @@ middle-east-geopolitic/
 │   │       └── jobs.py
 │   │
 │   ├── worker/
-│   │   ├── celery_app.py
 │   │   ├── schedules.py
 │   │   └── tasks/
 │   │       ├── collect.py
@@ -1459,7 +1457,7 @@ The platform exposes endpoints organized into:
 
 ### 24.1 Python infrastructure schedules
 
-Celery Beat maintains system jobs.
+Background task schedulers maintain system jobs.
 
 | Job | Initial frequency |
 |---|---:|
@@ -1634,7 +1632,7 @@ Track:
 - unresolved entity rate;
 - claim verification status counts;
 - investigation duration;
-- Celery queue depth and task retries;
+- Background task queue depth and retries;
 - risk-calculation duration;
 - report generation success;
 - API latency and errors;
@@ -1646,7 +1644,7 @@ Use one trace across:
 
 - API request;
 - investigation creation;
-- Celery workflow;
+- Background task workflow;
 - LLM calls;
 - database writes;
 - report generation.
@@ -1687,7 +1685,7 @@ Use testcontainers for:
 - MinIO;
 - migration verification;
 - repository behavior;
-- Celery task idempotency.
+- Background task idempotency.
 
 ### 29.3 Contract tests
 
@@ -2052,7 +2050,7 @@ Possible deliverables:
 ### Epic F — Investigations and reports
 
 - investigation state machine;
-- Celery orchestration;
+- Task orchestration;
 - daily brief;
 - investigation report;
 - approval and artifact storage.
@@ -2094,9 +2092,9 @@ Reason: simpler deployment and transactions, while preserving domain boundaries.
 
 Reason: relational integrity and temporal records are primary. NetworkX supports initial graph analysis. Add Neo4j only when real graph-query requirements justify it.
 
-### ADR-003: Celery before Temporal
+### ADR-003: Async background tasks before Temporal
 
-Reason: the MVP jobs are straightforward enough for Celery. Investigation steps are persisted to support recovery. Reassess when workflows become significantly more complex.
+Reason: the MVP jobs are straightforward enough for lightweight async task execution. Investigation steps are persisted to support recovery. Reassess when workflows become significantly more complex.
 
 ### ADR-004: API is the security boundary
 
@@ -2146,7 +2144,7 @@ FastAPI
 Application and domain services
   Intelligence rules, lifecycle, approvals, and orchestration
 
-Celery and Redis
+- Redis caching and async background task execution
   Durable collection, extraction, verification, scoring, and reporting jobs
 
 PostgreSQL and pgvector

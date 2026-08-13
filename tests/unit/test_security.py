@@ -54,3 +54,18 @@ def test_access_token_rejects_wrong_audience() -> None:
         decode_access_token(
             token, secret_key="test-secret", issuer="mei-platform", audience="wrong-audience"
         )
+
+
+def test_issued_api_key_key_id() -> None:
+    from unittest.mock import MagicMock
+    from uuid import uuid4
+
+    from mei.application.services.identity import IssuedApiKey
+
+    mock_key = MagicMock()
+    mock_id = uuid4()
+    mock_key.id = mock_id
+
+    issued = IssuedApiKey(api_key=mock_key, plaintext="mei_test123")
+    assert issued.key_id == mock_id
+    assert issued.api_key.id == mock_id

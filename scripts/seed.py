@@ -162,7 +162,7 @@ async def main_async() -> None:
             issued = await identity.issue_api_key(
                 user_id=user.id, name=key_name, scopes=[str(scope) for scope in scopes]
             )
-            logger.info("seed.api_key_issued", name=key_name, key_id=str(issued.key_id))
+            logger.info("seed.api_key_issued", name=key_name, key_id=str(issued.api_key.id))
 
         await session.commit()
 

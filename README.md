@@ -2,7 +2,9 @@
 
 A source-driven intelligence platform for collecting, structuring, verifying, analysing, and reporting geopolitical developments across the Middle East.
 
-The platform is built for evidence-led analysis rather than open-ended news chat. It maintains auditable records for actors, sources, documents, claims, evidence, events, relationships, indicators, risks, scenarios, investigations, forecasts, analyst assessments, model reviews, and imagery evidence.
+The platform is built for evidence-led analysis rather than open-ended news chat. It maintains auditable records for actors, sources, documents, claims, evidence, events, relationships, indicators, risks, scenarios, investigations, forecasts, analyst assessments, model reviews, imagery evidence, and monitoring alerts.
+
+---
 
 ## Documentation
 
@@ -12,53 +14,106 @@ The platform is built for evidence-led analysis rather than open-ended news chat
 4. [API reference](docs/api.md)
 5. [Data model guide](docs/data-model.md)
 6. [Risk methodology](docs/risk-methodology.md)
+7. [Frontend documentation](apps/frontend/README.md)
+8. [Database migrations guide](migrations/README.md)
+
+---
 
 ## Architecture
 
-- **Celery + Redis:** collection and analytical background jobs
-- **MinIO/S3:** raw documents and generated report artifacts
-- **LLMs:** structured extraction, evidence comparison, bounded analysis, and report drafting
-- **Rules and analyst approval:** verification, scoring, correction, and accountability
+- **FastAPI REST API (`apps/api`)**: Asynchronous API server handling intelligence queries, entity management, risk engine execution, report generation, and analyst workflows.
+- **Next.js Web Frontend (`apps/frontend`)**: Modern web dashboard providing interactive intelligence interfaces, geospatial mapping, network graph visualization, risk calibration charts, and investigation management.
+- **PostgreSQL + pgvector**: Relational persistence, temporal domain modeling (`valid_from` / `valid_to`), hybrid full-text search (`tsvector`), and vector similarity search (`vector(1536)`).
+- **Redis**: High-performance key-value caching and session state management.
+- **MinIO / S3 Object Storage**: Raw source document storage, generated Markdown/PDF report artifacts, and imagery evidence files.
+- **LLMs & Adapters**: Bounded LLM risk adjustment (`[-10, +10]`), structured extraction, multi-model review, and report drafting (OpenAI, OpenRouter, etc.).
+- **Deterministic Rules & Analyst Review**: Auditable scoring, verification queues, analyst stance updates, and canonical approval workflows.
 
-## Current status
+---
 
-Phases 0–6 are complete:
+## Current Status
 
-- **Phase 0:** the Python package (`uv`, Python 3.13), FastAPI/Celery/CLI app skeletons, the shared kernel (config, logging, IDs, security, errors), a Docker Compose stack (Postgres/pgvector, Redis, MinIO, Prometheus, Grafana), an empty Alembic scaffold, and CI (Ruff, mypy, pytest).
-- **Phase 1:** actor, source, document, claim, evidence, and event modules; authentication and scoped API keys; manual source submission; raw object storage; basic read APIs; audit logging.
-- **Phase 2:** RSS/HTTP collectors and source registry; parsing, language detection, and translation; deduplication; LLM claim/event extraction; entity resolution; analyst review queues.
-- **Phase 3:** relationship model and observation history; indicator definitions and observations; a deterministic risk-scoring engine with bounded LLM adjustment (`RiskEngine`); risk history and explanation APIs; country-brief and relationship-comparison endpoints.
-- **Phase 4:** scenario register and update workflow with sibling-family consistency checks (`ScenarioEngine`); forecast issuance and Brier-score outcome auditing (`ForecastAuditService`); daily/weekly/country/conflict report generation with LLM-optional drafting, Markdown rendering, and an approve/publish workflow (`ReportGenerator`); scenario, forecast, and report APIs; scheduled scenario-update and report-generation worker tasks.
-- **Phase 5:** investigation workflow and monitors/alerts engine with authenticated API endpoints. It supports read-only intelligence queries, investigations and report generation, controlled source/note/assessment/imagery/monitor submission, and verified approval actions.
-- **Phase 6:** graph analytics and geospatial views; forecast-calibration dashboards; analyst disagreement tracking; multi-model review; and imagery-evidence ingestion and analysis.
+Phases 0–6 and the web frontend are complete:
 
-See the [implementation design](docs/02-implementation-design.md) for the complete architecture, data model, API boundaries, and delivery plan.
+- **Phase 0**: Python package setup (`uv`, Python 3.13), FastAPI & CLI skeletons, shared kernel (config, logging, security, errors), Docker Compose stack (Postgres/pgvector, Redis, MinIO), Alembic scaffold, and CI pipeline (Ruff, mypy, pytest).
+- **Phase 1**: Actor, source, document, claim, evidence, and event domain modules; Bearer & X-API-Key auth with scoped permissions; manual source submission; raw object storage integration; audit logging.
+- **Phase 2**: RSS/HTTP collectors and source policies; HTML parsing, language detection, and translation; document deduplication; LLM claim/event extraction; entity resolution; analyst review queue endpoints.
+- **Phase 3**: Relationship model & observation history; indicator definitions and observations; deterministic `RiskEngine` with bounded LLM adjustment; temporal risk history; country-brief and bilateral comparison endpoints.
+- **Phase 4**: Scenario register and update workflow with sibling-family consistency checks (`ScenarioEngine`); forecast issuance and Brier-score auditing (`ForecastAuditService`); executive daily/weekly/country/conflict report generation (`ReportGenerator`).
+- **Phase 5**: Investigation workflows, active monitors & alerts engine; authenticated query endpoints; controlled source/note/assessment submission; approval actions.
+- **Phase 6**: Graph analytics & network topology; geospatial map interfaces; forecast-calibration dashboards; analyst disagreement tracking; multi-model review engine; imagery evidence ingestion and analysis.
+- **Web Frontend**: Full Next.js 15 App Router application (`apps/frontend`) connected to the FastAPI backend, enabling visual exploration of intelligence data.
 
-### Local development
+---
+
+## Quickstart & Local Development
+
+### Prerequisites
+
+- [Python 3.13+](https://www.python.org/)
+- [`uv`](https://github.com/astral-sh/uv)
+- [Node.js 18+](https://nodejs.org/) & `npm`
+- [Docker Engine](https://docs.docker.com/engine/install/) & Docker Compose v2+
+
+### 1. Running via Docker Compose (Recommended)
+
+Start the full stack (PostgreSQL + pgvector, FastAPI API, and Next.js Frontend):
 
 ```bash
-uv sync
 cp .env.example .env
-make dev       # FastAPI on http://localhost:8000
-make worker    # Celery worker
-make beat      # Celery beat
-make test
-make lint
-make typecheck
-make compose-up   # full stack via Docker Compose
+make compose-up
 ```
 
-Run database migrations before using a fresh local stack:
+- **Web Frontend**: [http://localhost:3003](http://localhost:3003)
+- **FastAPI API Server**: [http://localhost:8000](http://localhost:8000)
+- **Interactive API Docs (Swagger)**: [http://localhost:8000/docs](http://localhost:8000/docs)
+
+To stop all services:
 
 ```bash
+make compose-down
+```
+
+### 2. Manual Local Development
+
+#### Backend (FastAPI API)
+
+```bash
+# Install dependencies
+uv sync
+
+# Setup environment
+cp .env.example .env
+
+# Apply database migrations
 make migrate
+
+# Seed initial database records
+make seed
+
+# Start API server (hot reloading)
+make dev
 ```
 
-## Quality checks
+#### Frontend (Next.js App)
 
 ```bash
-make test
-make lint
-make typecheck
+cd apps/frontend
+npm install
+npm run dev
 ```
 
+The dev frontend will be available at [http://localhost:3000](http://localhost:3000).
+
+---
+
+## Quality Checks
+
+Run the verification suite across the codebase:
+
+```bash
+make test        # Run pytest suite
+make lint        # Run ruff check & format check
+make format      # Apply code formatting fixes
+make typecheck   # Run mypy type checker
+```

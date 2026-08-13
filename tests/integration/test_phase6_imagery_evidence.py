@@ -190,7 +190,11 @@ async def test_analyze_image_updates_analysis_and_verification_status(
     assert updated.verification_status == VerificationStatus.SINGLE_SOURCE
     assert updated.confidence == 0.82
     assert updated.analysis_json["description"] == "A convoy of military vehicles on a highway."
-    assert "military vehicle" in (updated.analysis_json.get("notable_features", []) if isinstance(updated.analysis_json, dict) else [])  # type: ignore
+    assert "military vehicle" in (
+        updated.analysis_json.get("notable_features", [])
+        if isinstance(updated.analysis_json, dict)
+        else []
+    )  # type: ignore
 
 
 async def test_link_image_to_bundle_round_trips(session: AsyncSession) -> None:

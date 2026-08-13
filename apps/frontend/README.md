@@ -1,36 +1,77 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Middle East Geopolitical Intelligence Platform — Web Frontend
 
-## Getting Started
+The official web application interface for the Middle East Geopolitical Intelligence Platform, built with Next.js 15 (App Router), React, TypeScript, and Tailwind CSS.
 
-First, run the development server:
+---
 
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+## 1. Overview & Capabilities
+
+The frontend provides interactive tools and dashboards for geopolitical analysts:
+
+- **Intelligence Dashboard**: Real-time view of verified events, country risk scores, and breaking intelligence.
+- **Geospatial Map & Kinetic Views**: Interactive mapping of geopolitical events, troop deployments, spatial clustering, and conflict hotspots.
+- **Network Graph Analytics**: Multi-relational network topology visualization for state actors, armed proxy networks, and influence vectors.
+- **Risk Engine & Calibration**: Detailed indicator breakdowns, score change explanations, and forecast Brier calibration charts.
+- **Investigations & Monitor Center**: Workspace for initiating investigations, tracking open cases, taking notes, and configuring automated alert thresholds.
+- **Multi-Model Review & Disagreement Tracking**: Stance analysis comparing candidate claims across different LLMs and tracking consensus/disagreement among analysts.
+- **Imagery Evidence Viewer**: Inspection interface for satellite and open-source imagery evidence with geographic tags and bounding boxes.
+
+---
+
+## 2. Technology Stack
+
+- **Framework**: Next.js 15 (App Router)
+- **Language**: TypeScript
+- **Styling**: Tailwind CSS & CSS Modules
+- **State & Data Fetching**: React Hooks & Server/Client Components
+- **API Client**: REST API integration connecting to FastAPI (`/api/v1`)
+
+---
+
+## 3. Environment Configuration
+
+The frontend requires the API server URL configuration. Create or edit `.env.local` in `apps/frontend`:
+
+```env
+NEXT_PUBLIC_API_URL=http://localhost:8000
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+| Variable | Description | Default |
+|---|---|---|
+| `NEXT_PUBLIC_API_URL` | Base URL of the FastAPI Backend API | `http://localhost:8000` |
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+---
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+## 4. Development & Running Locally
 
-## Learn More
+### Standalone Local Development
 
-To learn more about Next.js, take a look at the following resources:
+```bash
+# Navigate to frontend directory
+cd apps/frontend
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+# Install dependencies
+npm install
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+# Start local development server (with hot reload)
+npm run dev
+```
 
-## Deploy on Vercel
+The application will be accessible at [http://localhost:3000](http://localhost:3000).
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+### Build for Production
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+```bash
+npm run build
+npm run start
+```
+
+### Docker Compose Deployment
+
+When running via the root `docker-compose.yml`, the frontend container is automatically built and served on port `3003`:
+
+```bash
+make compose-up
+```
+
+Access the frontend at [http://localhost:3003](http://localhost:3003).

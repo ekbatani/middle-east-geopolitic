@@ -24,8 +24,3 @@ FROM base AS api
 EXPOSE 8000
 CMD ["uvicorn", "apps.api.main:app", "--host", "0.0.0.0", "--port", "8000"]
 
-FROM base AS worker
-CMD ["celery", "-A", "apps.worker.celery_app", "worker", "--loglevel=INFO"]
-
-FROM base AS beat
-CMD ["celery", "-A", "apps.worker.celery_app", "beat", "--loglevel=INFO"]

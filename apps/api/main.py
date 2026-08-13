@@ -1,6 +1,7 @@
 from pathlib import Path
 
 from fastapi import APIRouter, FastAPI, Request
+from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 from fastapi.staticfiles import StaticFiles
 
@@ -29,7 +30,6 @@ from apps.api.routers import (
     sources,
 )
 from mei.shared.config import get_settings
-from fastapi.middleware.cors import CORSMiddleware
 from mei.shared.errors import MeiError
 from mei.shared.logging import configure_logging
 

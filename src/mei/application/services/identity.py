@@ -22,6 +22,10 @@ class IssuedApiKey:
     api_key: ApiKey
     plaintext: str
 
+    @property
+    def key_id(self) -> UUID:
+        return self.api_key.id
+
 
 class IdentityService:
     def __init__(self, session: AsyncSession, settings: Settings) -> None:

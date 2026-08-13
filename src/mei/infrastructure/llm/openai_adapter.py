@@ -1,6 +1,5 @@
-from typing import Any
 import base64
-from typing import TypeVar
+from typing import Any, TypeVar
 
 from openai import AsyncOpenAI
 from pydantic import BaseModel
