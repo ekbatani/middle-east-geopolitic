@@ -1,4 +1,4 @@
-.PHONY: install dev migrate seed test lint typecheck format compose-up compose-down
+.PHONY: install dev migrate seed seed-demo test lint typecheck format compose-up compose-down
 
 install:
 	uv sync
@@ -13,6 +13,9 @@ migrate:
 
 seed:
 	uv run python scripts/seed.py
+
+seed-demo:
+	uv run python scripts/seed_demo.py
 
 test:
 	uv run pytest

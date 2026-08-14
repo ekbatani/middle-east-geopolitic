@@ -88,8 +88,11 @@ cp .env.example .env
 # Apply database migrations
 make migrate
 
-# Seed initial database records
+# Seed initial database records (minimal catalog)
 make seed
+
+# (Recommended) Seed comprehensive demo data across all 15 intelligence sections
+make seed-demo
 
 # Start API server (hot reloading)
 make dev
