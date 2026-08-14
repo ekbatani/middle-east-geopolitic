@@ -14,19 +14,23 @@ const geistMono = Geist_Mono({
 
 export const metadata: Metadata = {
   title: "Middle East Geopolitical Intelligence Platform",
-  description: "Geopolitical intelligence and monitoring platform",
+  description: "Evidence-led geopolitical intelligence and monitoring platform",
   icons: {
     icon: "/logo.png",
   },
 };
 
-export default function RootLayout({ children }: LayoutProps<"/">) {
+export default function RootLayout({
+  children,
+}: {
+  children: React.ReactNode;
+}) {
   return (
     <html
       lang="en"
       className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
     >
-      <body className="min-h-full flex flex-col">{children}</body>
+      <body className="min-h-full flex flex-col bg-[#06080f] text-slate-100">{children}</body>
     </html>
   );
 }
