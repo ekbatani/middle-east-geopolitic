@@ -27,6 +27,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     const stored = getStoredAuth();
     if (stored.apiKey || stored.token) {
+      if (stored.apiKey && !stored.apiKey.startsWith("mei_")) {
+        setStoredAuth(null, null);
+        setApiKey(null);
+        setJwtToken(null);
+        setIsLoading(false);
+        return;
+      }
       setApiKey(stored.apiKey);
       setJwtToken(stored.token);
       if (stored.apiKey) {
@@ -38,8 +45,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             setScopes(res.scopes);
             setStoredAuth(res.access_token, stored.apiKey);
           })
-          .catch((err) => {
+          .catch((err: any) => {
             console.warn("Could not exchange stored API key for JWT token:", err);
+            if (err?.status === 401 || err?.status === 403) {
+              setStoredAuth(null, null);
+              setApiKey(null);
+              setJwtToken(null);
+            }
           })
           .finally(() => {
             setIsLoading(false);
@@ -53,6 +65,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   const loginWithApiKey = async (key: string): Promise<boolean> => {
+    if (!key.startsWith("mei_")) {
+      throw new Error("Invalid API key format. API keys must start with 'mei_' (UUIDs or key IDs cannot be used).");
+    }
     try {
       const res = await authService.exchangeToken(key);
       startTransition(() => {
@@ -62,7 +77,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         setStoredAuth(res.access_token, key);
       });
       return true;
-    } catch (err) {
+    } catch (err: any) {
+      if (err?.status === 401 || err?.status === 403) {
+        throw new Error("Authentication failed: API key was not recognized or is expired.");
+      }
       console.warn("Direct token exchange failed, storing raw API key as bearer:", err);
       // Even if token exchange fails (e.g. mock or backend offline), save API key so requests use Authorization: Bearer <key>
       startTransition(() => {

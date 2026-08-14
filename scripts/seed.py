@@ -163,6 +163,10 @@ async def main_async() -> None:
                 user_id=user.id, name=key_name, scopes=[str(scope) for scope in scopes]
             )
             logger.info("seed.api_key_issued", name=key_name, key_id=str(issued.api_key.id))
+            print("\n" + "=" * 60)
+            print(f" [SEED] Analyst API Key Issued ({key_name}):")
+            print(f" {issued.plaintext}")
+            print("=" * 60 + "\n")
 
         await session.commit()
 

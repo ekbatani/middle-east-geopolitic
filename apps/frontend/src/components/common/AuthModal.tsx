@@ -32,8 +32,11 @@ export function AuthModal({ isOpen, onClose }: AuthModalProps) {
           onClose();
         }, 1200);
       }
-    } catch {
-      setMsg({ text: "Authentication failed. Please check your key.", type: "error" });
+    } catch (err: any) {
+      setMsg({
+        text: err?.message || "Authentication failed. Please check your key.",
+        type: "error",
+      });
     } finally {
       setIsSubmitting(false);
     }
