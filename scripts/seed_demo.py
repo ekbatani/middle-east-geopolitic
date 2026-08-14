@@ -7,60 +7,54 @@ Populates realistic, interconnected intelligence data across ALL 15 platform mod
 4. Geocoded Events & Impact Assessments (Map View)
 5. Multilateral Actor Relationships & Trend Scores (Graph View)
 6. Indicator Observations & Evaluated Risk Models (Risk Engine)
-7. Geopolitical Scenarios & Probabilistic Assessments
-8. Forecast Records & Calibration Metrics (Brier Scores)
+7. Geopolitical Scenarios & Probabilistic Assessments (Scenarios View)
+8. Forecast Records & Calibration Metrics (Forecasts View)
 9. Intelligence Reports (Daily Briefs, Country Briefs, Conflict Outlooks)
-10. Active Investigations & Timeline Steps
-11. Real-time Monitors & Triggered Notification Alerts
+10. Active Investigations & Timeline Steps (Investigations View)
+11. Real-time Monitors & Triggered Notification Alerts (Monitors View)
 12. Review Queue Items (Entity Resolution & High-Impact Events)
-13. Imagery Evidence with Geospatial Coordinates & Analysis JSON
-14. Analyst Assessments & Multi-Model Review Disagreements
+13. Imagery Evidence with Geospatial Coordinates & Analysis JSON (Imagery View)
+14. Analyst Assessments & Multi-Model Review Disagreements (Disagreements View)
 15. Administrator Identity & API Key
 """
 
 import asyncio
-from datetime import date, datetime, timedelta
-from pathlib import Path
+from datetime import date, timedelta
 from uuid import UUID
 
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from mei.application.services.identity import IdentityService
-from mei.domain.actors.models import Actor, ActorAlias, ActorLeadership
+from mei.domain.actors.models import Actor, ActorAlias
 from mei.domain.analyst_assessments.models import AnalystAssessment
 from mei.domain.claims.models import Claim, ClaimEvidence
 from mei.domain.documents.models import Document, DocumentChunk
 from mei.domain.events.models import Event, EventActor, EventImpact, EventLocation
-from mei.domain.evidence.models import EvidenceBundle, EvidenceBundleItem
 from mei.domain.forecasts.models import ForecastRecord
 from mei.domain.imagery.models import ImageEvidence
-from mei.domain.indicators.models import IndicatorDefinition, IndicatorObservation
+from mei.domain.indicators.models import IndicatorObservation
 from mei.domain.investigations.models import Investigation, InvestigationStep
 from mei.domain.model_reviews.models import ModelReviewResult
 from mei.domain.monitors.models import Monitor, Notification
 from mei.domain.relationships.models import Relationship, RelationshipObservation
 from mei.domain.reports.models import Report
 from mei.domain.review.models import ReviewItem
-from mei.domain.risks.models import RiskAssessment, RiskDefinition
-from mei.domain.sources.models import Source, SourceEndpoint
+from mei.domain.risks.models import RiskAssessment
+from mei.domain.scenarios.models import Scenario, ScenarioAssessment
+from mei.domain.sources.models import Source
 from mei.infrastructure.database.session import get_session_factory
 from mei.infrastructure.repositories.actors import ActorRepository
 from mei.infrastructure.repositories.indicators import IndicatorRepository
 from mei.infrastructure.repositories.risks import RiskRepository
-from mei.infrastructure.repositories.sources import SourceRepository
 from mei.shared.config import get_settings
 from mei.shared.enums import (
-    ActorStatus,
     ActorType,
     DisagreementSubjectType,
     DocumentStatus,
-    EndpointType,
     EvidenceStance,
     ForecastOutcome,
     ForecastStatus,
-    IndicatorDirection,
-    IndicatorNormalizationMethod,
     LifecycleStatus,
     ModelReviewSubjectType,
     RelationshipDirectionality,
@@ -74,7 +68,6 @@ from mei.shared.enums import (
     ScenarioStatus,
     Scope,
     ScopeType,
-    SourceType,
     Trend,
     VerificationStatus,
 )
@@ -101,14 +94,14 @@ async def seed_extended_actors(session: AsyncSession) -> dict[str, Actor]:
         if await repo.get_by_canonical_name(name) is None:
             await repo.create(canonical_name=name, actor_type=actor_type, native_name=native)
 
-    all_actors = await repo.list_all(limit=100)
+    all_actors = await repo.list_all(limit=200)
     actor_map = {a.canonical_name: a for a in all_actors}
 
-    # Add Aliases if missing
+    # Aliases
     iran = actor_map.get("Iran")
     if iran:
         res = await session.execute(select(ActorAlias).where(ActorAlias.actor_id == iran.id))
-        if not res.scalars().all():
+        if not res.scalars().first():
             session.add_all([
                 ActorAlias(actor_id=iran.id, alias="Islamic Republic of Iran", alias_type="official_name"),
                 ActorAlias(actor_id=iran.id, alias="IRI", alias_type="acronym"),
@@ -118,7 +111,7 @@ async def seed_extended_actors(session: AsyncSession) -> dict[str, Actor]:
     israel = actor_map.get("Israel")
     if israel:
         res = await session.execute(select(ActorAlias).where(ActorAlias.actor_id == israel.id))
-        if not res.scalars().all():
+        if not res.scalars().first():
             session.add_all([
                 ActorAlias(actor_id=israel.id, alias="State of Israel", alias_type="official_name"),
                 ActorAlias(actor_id=israel.id, alias="Tel Aviv", alias_type="metonym"),
@@ -160,7 +153,7 @@ async def seed_documents_and_claims(
     doc_map: dict[str, Document] = {}
     for d in docs_data:
         existing = await session.execute(select(Document).where(Document.canonical_url == d["url"]))
-        doc = existing.scalar_one_or_none()
+        doc = existing.scalars().first()
         if not doc:
             doc = Document(
                 source_id=source.id,
@@ -224,7 +217,7 @@ async def seed_documents_and_claims(
     claim_map: dict[str, Claim] = {}
     for c in claims_data:
         existing = await session.execute(select(Claim).where(Claim.claim_text == c["text"]))
-        claim = existing.scalar_one_or_none()
+        claim = existing.scalars().first()
         if not claim:
             claimant = actor_map.get(c["claimant"])
             subject = actor_map.get(c["subject"])
@@ -346,7 +339,7 @@ async def seed_events(session: AsyncSession, actor_map: dict[str, Actor]) -> lis
     created_events: list[Event] = []
     for e in events_data:
         existing = await session.execute(select(Event).where(Event.title == e["title"]))
-        event = existing.scalar_one_or_none()
+        event = existing.scalars().first()
         if not event:
             event = Event(
                 title=e["title"],
@@ -425,7 +418,7 @@ async def seed_relationships(session: AsyncSession, actor_map: dict[str, Actor])
                 Relationship.target_actor_id == tgt.id,
             )
         )
-        rel = existing.scalar_one_or_none()
+        rel = existing.scalars().first()
         if not rel:
             rel = Relationship(
                 source_actor_id=src.id,
@@ -491,7 +484,7 @@ async def seed_indicators_and_risks(session: AsyncSession, actor_map: dict[str, 
                     IndicatorObservation.scope_id == act.id,
                 )
             )
-            if not existing.scalar_one_or_none():
+            if not existing.scalars().first():
                 session.add(
                     IndicatorObservation(
                         indicator_id=ind_def.id,
@@ -508,7 +501,7 @@ async def seed_indicators_and_risks(session: AsyncSession, actor_map: dict[str, 
     # Risk Assessments
     risk_defs = await risk_repo.list_definitions()
     for rdef in risk_defs:
-        for c_name in ["Iran", "Israel", "Lebanon"]:
+        for c_name in ["Iran", "Israel", "Lebanon", "Saudi Arabia"]:
             act = actor_map.get(c_name)
             if not act:
                 continue
@@ -519,8 +512,8 @@ async def seed_indicators_and_risks(session: AsyncSession, actor_map: dict[str, 
                     RiskAssessment.scope_id == act.id,
                 )
             )
-            if not existing.scalar_one_or_none():
-                score = 78 if c_name in ("Israel", "Lebanon") else 72
+            if not existing.scalars().first():
+                score = 78 if c_name in ("Israel", "Lebanon") else (72 if c_name == "Iran" else 45)
                 session.add(
                     RiskAssessment(
                         risk_definition_id=rdef.id,
@@ -531,9 +524,9 @@ async def seed_indicators_and_risks(session: AsyncSession, actor_map: dict[str, 
                         llm_adjustment=3,
                         final_score=min(100, score + 3),
                         previous_score=score - 5,
-                        trend=Trend.RISING,
+                        trend=Trend.RISING if score > 50 else Trend.STABLE,
                         confidence=0.88,
-                        explanation=f"High risk posture in {c_name} driven by sustained kinetic exchanges, active missile mobilization, and elevated rhetoric.",
+                        explanation=f"Risk posture in {c_name} influenced by kinetic activity, cross-theater weapon flows, and alert levels.",
                         contributions_json=[
                             {"indicator": "direct_cross_border_attacks", "weight": 0.25, "impact": "+15"},
                             {"indicator": "missile_drone_launch_frequency", "weight": 0.20, "impact": "+12"},
@@ -558,6 +551,7 @@ async def seed_scenarios(session: AsyncSession, actor_map: dict[str, Actor]) -> 
             "desc": "Unconstrained multi-wave ballistic missile and hypersonic strikes targeting critical defense and energy infrastructure.",
             "triggers": ["Assassination of senior leadership", "Preemptive strike on nuclear enrichment facility"],
             "indicators": ["Air defense dispersal", "Underground silo hatch openings", "NOTAM airspace shutdowns"],
+            "assumptions": ["Deterrence threshold broken", "Diplomatic off-ramps exhausted"],
         },
         {
             "name": "Sustained Attrition along the Litani Buffer Zone",
@@ -570,6 +564,7 @@ async def seed_scenarios(session: AsyncSession, actor_map: dict[str, Actor]) -> 
             "desc": "High-volume tactical artillery and UAV exchanges without full-scale armored ground invasion of Beirut.",
             "triggers": ["Failure of UNIFIL diplomatic negotiations", "Increased cross-border anti-tank guided missile fire"],
             "indicators": ["Civilian evacuation radius expansion", "IDF reserve brigade mobilization"],
+            "assumptions": ["Both sides prefer managed friction over total war"],
         },
         {
             "name": "Omani-Mediated Red Sea Maritime Navigation Protocol",
@@ -582,6 +577,7 @@ async def seed_scenarios(session: AsyncSession, actor_map: dict[str, Actor]) -> 
             "desc": "Conditional commercial safe-transit agreements in exchange for humanitarian port access in Hodeidah.",
             "triggers": ["Bilateral Muscat talks", "Easing of commercial cargo insurance surcharges"],
             "indicators": ["Decline in missile launches against commercial hulls", "Resumption of Bab el-Mandeb transits"],
+            "assumptions": ["Regional intermediaries successfully de-link maritime campaign from other theaters"],
         },
         {
             "name": "Multi-Front Regional War with Chokepoint Interdiction",
@@ -594,28 +590,47 @@ async def seed_scenarios(session: AsyncSession, actor_map: dict[str, Actor]) -> 
             "desc": "Simultaneous closure of Strait of Hormuz and Bab el-Mandeb accompanied by regional energy facility destruction.",
             "triggers": ["Direct state declaration of war", "Mine-laying in Persian Gulf sea lanes"],
             "indicators": ["Mining vessel deployments", "Global oil price spikes above $140/bbl"],
+            "assumptions": ["Asymmetric denial strategy fully activated"],
         },
     ]
 
     for s in scenarios_data:
-        existing = await session.execute(select(Report).where(Report.title == s["name"]))
         act = actor_map.get(s["scope"])
-        scen_existing = await session.execute(
-            select(RiskAssessment)
-        )  # fallback check
-        session.add(
-            Report(
-                report_type=ReportType.CONFLICT_BRIEF,
-                title=f"Scenario Brief: {s['name']}",
+        existing = await session.execute(select(Scenario).where(Scenario.name == s["name"]))
+        scen = existing.scalars().first()
+        if not scen:
+            scen = Scenario(
+                name=s["name"],
                 scope_type=ScopeType.COUNTRY,
                 scope_id=act.id if act else None,
-                content_markdown=f"### {s['name']}\n**Probability:** {int(s['prob_low']*100)}% - {int(s['prob_high']*100)}%\n\n{s['desc']}\n\n#### Trigger Events\n- " + "\n- ".join(s["triggers"]),
-                status=ReportStatus.APPROVED,
-                approved_by="Scenario Committee",
-                approved_at=utcnow(),
-                published_at=utcnow(),
+                scenario_family=s["family"],
+                time_horizon=s["horizon"],
+                status=ScenarioStatus.ACTIVE,
+                description=s["desc"],
             )
-        )
+            session.add(scen)
+            await session.flush()
+
+            session.add(
+                ScenarioAssessment(
+                    scenario_id=scen.id,
+                    assessed_at=utcnow() - timedelta(hours=6),
+                    probability_low=s["prob_low"],
+                    probability_high=s["prob_high"],
+                    confidence=s["confidence"],
+                    assumptions_json=s["assumptions"],
+                    trigger_events_json=s["triggers"],
+                    leading_indicators_json=s["indicators"],
+                    expected_actor_behavior=s["desc"],
+                    military_consequences="High alert and reserve mobilization across northern and southern commands.",
+                    economic_consequences="Insurance surcharges on maritime freight and regional crude transport.",
+                    humanitarian_consequences="Displacement in border buffer areas.",
+                    invalidation_criteria_json=["Comprehensive verified ceasefire accord"],
+                    explanation_of_change="Upward probability adjustment based on cross-border kinetic cadence.",
+                    approved_by="Lead Geopolitical Modeler",
+                    approved_at=utcnow(),
+                )
+            )
 
 
 async def seed_forecasts(session: AsyncSession) -> None:
@@ -662,7 +677,7 @@ async def seed_forecasts(session: AsyncSession) -> None:
 
     for f in forecasts_data:
         existing = await session.execute(select(ForecastRecord).where(ForecastRecord.question == f["question"]))
-        if not existing.scalar_one_or_none():
+        if not existing.scalars().first():
             session.add(
                 ForecastRecord(
                     question=f["question"],
@@ -724,7 +739,7 @@ Iran maintains a forward-defense posture leveraging decentralized regional allia
 
     for r in reports_data:
         existing = await session.execute(select(Report).where(Report.title == r["title"]))
-        if not existing.scalar_one_or_none():
+        if not existing.scalars().first():
             session.add(
                 Report(
                     report_type=r["type"],
@@ -774,7 +789,7 @@ async def seed_investigations_and_monitors(
 
     for inv_data in invs:
         existing = await session.execute(select(Investigation).where(Investigation.title == inv_data["title"]))
-        if not existing.scalar_one_or_none():
+        if not existing.scalars().first():
             inv = Investigation(
                 title=inv_data["title"],
                 question=inv_data["question"],
@@ -828,7 +843,7 @@ async def seed_investigations_and_monitors(
 
     for m_data in monitors_data:
         existing = await session.execute(select(Monitor).where(Monitor.name == m_data["name"]))
-        if not existing.scalar_one_or_none():
+        if not existing.scalars().first():
             mon = Monitor(
                 name=m_data["name"],
                 user_id=admin_user_id,
@@ -860,34 +875,36 @@ async def seed_review_queue_and_imagery(
     session: AsyncSession, doc_map: dict[str, Document]
 ) -> None:
     # Review Queue Items
-    review_items_data = [
-        {
-            "type": ReviewType.HIGH_IMPACT_EVENT,
-            "subject": {"event_title": "Unconfirmed Long-Range Cruise Missile Impact near Military Radar Site", "source": "OSINT Telegram Feed"},
-            "candidates": [
-                {"label": "Direct Kinetic Strike on Active Radar Array", "confidence": 0.65},
-                {"label": "Air Defense Interception Debris Field", "confidence": 0.72},
-            ],
-        },
-        {
-            "type": ReviewType.ENTITY_RESOLUTION,
-            "subject": {"extracted_name": "Kata'ib Sayyid al-Shuhada", "context": "Statement claiming responsibility for border drone launch"},
-            "candidates": [
-                {"canonical_name": "Islamic Resistance in Iraq", "match_score": 0.88},
-                {"canonical_name": "Popular Mobilization Forces", "match_score": 0.74},
-            ],
-        },
-    ]
+    existing_reviews = await session.execute(select(ReviewItem).limit(1))
+    if not existing_reviews.scalars().first():
+        review_items_data = [
+            {
+                "type": ReviewType.HIGH_IMPACT_EVENT,
+                "subject": {"event_title": "Unconfirmed Long-Range Cruise Missile Impact near Military Radar Site", "source": "OSINT Telegram Feed"},
+                "candidates": [
+                    {"label": "Direct Kinetic Strike on Active Radar Array", "confidence": 0.65},
+                    {"label": "Air Defense Interception Debris Field", "confidence": 0.72},
+                ],
+            },
+            {
+                "type": ReviewType.ENTITY_RESOLUTION,
+                "subject": {"extracted_name": "Kata'ib Sayyid al-Shuhada", "context": "Statement claiming responsibility for border drone launch"},
+                "candidates": [
+                    {"canonical_name": "Islamic Resistance in Iraq", "match_score": 0.88},
+                    {"canonical_name": "Popular Mobilization Forces", "match_score": 0.74},
+                ],
+            },
+        ]
 
-    for r in review_items_data:
-        session.add(
-            ReviewItem(
-                review_type=r["type"],
-                status=ReviewStatus.PENDING,
-                subject_json=r["subject"],
-                candidates_json=r["candidates"],
+        for r in review_items_data:
+            session.add(
+                ReviewItem(
+                    review_type=r["type"],
+                    status=ReviewStatus.PENDING,
+                    subject_json=r["subject"],
+                    candidates_json=r["candidates"],
+                )
             )
-        )
 
     # Imagery Evidence
     doc = list(doc_map.values())[0] if doc_map else None
@@ -922,7 +939,7 @@ async def seed_review_queue_and_imagery(
 
     for img in imagery_data:
         existing = await session.execute(select(ImageEvidence).where(ImageEvidence.object_key == img["key"]))
-        if not existing.scalar_one_or_none():
+        if not existing.scalars().first():
             session.add(
                 ImageEvidence(
                     object_key=img["key"],
@@ -945,35 +962,39 @@ async def seed_disagreements_and_model_reviews(
     session: AsyncSession, admin_user_id: UUID
 ) -> None:
     # Model Reviews (Shadow LLM comparison)
-    session.add(
-        ModelReviewResult(
-            subject_type=ModelReviewSubjectType.RISK_ASSESSMENT,
-            subject_id=uuid7(),
-            trigger_reason="high_impact_delta_audit",
-            primary_model="openai/gpt-4o",
-            secondary_model="anthropic/claude-3-5-sonnet",
-            primary_final_score=82,
-            secondary_final_score=78,
-            agreement=True,
-            agreement_delta=4,
-            secondary_output_json={
-                "rationale": "Secondary model largely concurs with elevated risk trajectory while discounting rhetoric multiplier by 4 points."
-            },
+    existing_mr = await session.execute(select(ModelReviewResult).limit(1))
+    if not existing_mr.scalars().first():
+        session.add(
+            ModelReviewResult(
+                subject_type=ModelReviewSubjectType.RISK_ASSESSMENT,
+                subject_id=uuid7(),
+                trigger_reason="high_impact_delta_audit",
+                primary_model="openai/gpt-4o",
+                secondary_model="anthropic/claude-3-5-sonnet",
+                primary_final_score=82,
+                secondary_final_score=78,
+                agreement=True,
+                agreement_delta=4,
+                secondary_output_json={
+                    "rationale": "Secondary model largely concurs with elevated risk trajectory while discounting rhetoric multiplier by 4 points."
+                },
+            )
         )
-    )
 
     # Analyst Disagreements
-    session.add(
-        AnalystAssessment(
-            subject_type=DisagreementSubjectType.RISK_ASSESSMENT,
-            subject_id=uuid7(),
-            analyst_user_id=admin_user_id,
-            stance="skeptical",
-            score=58.0,
-            confidence=0.82,
-            rationale="Current missile launch cadences reflect calculated calibrated messaging rather than imminent offensive breakout.",
+    existing_aa = await session.execute(select(AnalystAssessment).limit(1))
+    if not existing_aa.scalars().first():
+        session.add(
+            AnalystAssessment(
+                subject_type=DisagreementSubjectType.RISK_ASSESSMENT,
+                subject_id=uuid7(),
+                analyst_user_id=admin_user_id,
+                stance="skeptical",
+                score=58.0,
+                confidence=0.82,
+                rationale="Current missile launch cadences reflect calculated calibrated messaging rather than imminent offensive breakout.",
+            )
         )
-    )
 
 
 async def main_async() -> None:
