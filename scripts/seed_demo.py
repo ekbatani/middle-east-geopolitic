@@ -25,6 +25,7 @@ from uuid import UUID
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from mei.infrastructure.database import models as _all_models  # noqa: F401
 from mei.application.services.identity import IdentityService
 from mei.domain.actors.models import Actor, ActorAlias
 from mei.domain.analyst_assessments.models import AnalystAssessment

@@ -12,6 +12,7 @@ from pathlib import Path
 import yaml
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from mei.infrastructure.database import models as _all_models  # noqa: F401
 from mei.application.services.identity import IdentityService
 from mei.infrastructure.database.session import get_session_factory
 from mei.infrastructure.repositories.actors import ActorRepository
