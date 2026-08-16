@@ -62,6 +62,9 @@ class SourceType(StrEnum):
     NGO = "ngo"
     ACADEMIC = "academic"
     SOCIAL_MEDIA = "social_media"
+    STATE_MEDIA = "state_media"
+    SATELLITE = "satellite"
+    TELEGRAM = "telegram"
     OTHER = "other"
 
 

@@ -1,16 +1,19 @@
 import { UUID } from "./common";
 
 export type SourceType =
-  | "rss"
-  | "telegram"
-  | "official_statement"
-  | "think_tank"
-  | "social_media"
-  | "satellite"
   | "news_outlet"
   | "state_media"
+  | "wire_service"
   | "government"
+  | "think_tank"
+  | "ngo"
+  | "academic"
+  | "social_media"
+  | "satellite"
+  | "telegram"
+  | "official_statement"
   | "other"
+  | "rss"
   | "manual";
 
 export type EndpointType = "rss" | "html" | "api" | "scraper" | "telegram";
