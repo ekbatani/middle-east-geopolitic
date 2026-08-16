@@ -953,7 +953,7 @@ async def seed_review_queue_and_imagery(
                     verification_status=img["status"],
                     confidence=img["confidence"],
                     analysis_json=img["analysis"],
-                    submitted_by_type="satellite_tasking_feed",
+                    submitted_by_type="satellite_feed",
                     captured_at=utcnow() - timedelta(days=2),
                 )
             )
