@@ -29,8 +29,9 @@ class ScheduleRepository:
             select(JobSchedule)
             .where(JobSchedule.job_type == job_type)
             .options(selectinload(JobSchedule.executions))
+            .limit(1)
         )
-        return result.scalar_one_or_none()
+        return result.scalars().first()
 
     async def list_all(self, *, enabled_only: bool = False) -> list[JobSchedule]:
         stmt = select(JobSchedule).options(selectinload(JobSchedule.executions)).order_by(JobSchedule.name)

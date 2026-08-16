@@ -22,9 +22,9 @@ class ActorRepository:
 
     async def get_by_canonical_name(self, canonical_name: str) -> Actor | None:
         result = await self._session.execute(
-            select(Actor).where(Actor.canonical_name == canonical_name)
+            select(Actor).where(Actor.canonical_name == canonical_name).limit(1)
         )
-        return result.scalar_one_or_none()
+        return result.scalars().first()
 
     async def find_by_exact_alias(self, name: str) -> Actor | None:
         """Entity resolution step 1 (design doc section 12.2): exact normalized match."""
@@ -32,8 +32,9 @@ class ActorRepository:
             select(Actor)
             .options(selectinload(Actor.aliases))
             .where(Actor.canonical_name.ilike(name))
+            .limit(1)
         )
-        actor = result.scalar_one_or_none()
+        actor = result.scalars().first()
         if actor is not None:
             return actor
 

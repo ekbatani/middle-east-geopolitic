@@ -33,8 +33,14 @@ class SourceRepository:
         return list(result.scalars().unique())
 
     async def get_by_base_url(self, base_url: str) -> Source | None:
-        result = await self._session.execute(select(Source).where(Source.base_url == base_url))
-        return result.scalar_one_or_none()
+        stmt = select(Source).where(Source.base_url == base_url).limit(1)
+        result = await self._session.execute(stmt)
+        return result.scalars().first()
+
+    async def get_by_name(self, name: str) -> Source | None:
+        stmt = select(Source).where(Source.name == name).limit(1)
+        result = await self._session.execute(stmt)
+        return result.scalars().first()
 
     async def list_endpoints_due(
         self, *, endpoint_type: EndpointType, schedule: str

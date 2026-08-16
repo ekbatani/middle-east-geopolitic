@@ -71,11 +71,15 @@ async def _seed_sources(session: AsyncSession) -> None:
     created = 0
     for entry in raw.get("sources", []):
         base_url = entry["base_url"]
-        if await repo.get_by_base_url(base_url) is not None:
+        name = entry["name"]
+        if (
+            await repo.get_by_base_url(base_url) is not None
+            or await repo.get_by_name(name) is not None
+        ):
             continue
 
         source = await repo.create(
-            name=entry["name"],
+            name=name,
             source_type=SourceType(entry["source_type"]),
             base_url=base_url,
             default_language=entry.get("default_language"),
