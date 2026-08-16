@@ -5,6 +5,7 @@ import {
   Investigation,
   InvestigationDetail,
   CreateInvestigationRequest,
+  UpdateInvestigationRequest,
 } from "../../types";
 import { investigationsService } from "../../services";
 import {
@@ -12,10 +13,9 @@ import {
   PlusIcon,
   ActivityIcon,
   RefreshCwIcon,
-  CheckCircleIcon,
-  AlertTriangleIcon,
+  Trash2Icon,
 } from "../common/Icons";
-import { Card, CardHeader } from "../common/Card";
+import { Card } from "../common/Card";
 import { Badge } from "../common/Badge";
 import { LoadingState, ErrorState } from "../common/LoadingState";
 import { Modal } from "../common/Modal";
@@ -39,6 +39,11 @@ export function InvestigationsView() {
     priority: "medium",
   });
   const [isLaunching, setIsLaunching] = useState(false);
+
+  // Edit Investigation Modal
+  const [isEditOpen, setIsEditOpen] = useState(false);
+  const [editForm, setEditForm] = useState<UpdateInvestigationRequest>({});
+  const [isUpdating, setIsUpdating] = useState(false);
 
   const fetchInvestigations = async () => {
     setIsLoading(true);
@@ -89,6 +94,37 @@ export function InvestigationsView() {
       console.error("Launch error:", err);
     } finally {
       setIsLaunching(false);
+    }
+  };
+
+  const handleUpdate = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!selectedInvestigation) return;
+
+    setIsUpdating(true);
+    try {
+      await investigationsService.updateInvestigation(selectedInvestigation.id, editForm);
+      setIsEditOpen(false);
+      const detail = await investigationsService.getInvestigation(selectedInvestigation.id);
+      setSelectedInvestigation(detail);
+      fetchInvestigations();
+    } catch (err) {
+      console.error("Update investigation error:", err);
+    } finally {
+      setIsUpdating(false);
+    }
+  };
+
+  const handleDelete = async (investigationId: string) => {
+    if (!confirm("Are you sure you want to delete this investigation and its timeline steps?")) return;
+    try {
+      await investigationsService.deleteInvestigation(investigationId);
+      if (selectedInvestigation?.id === investigationId) {
+        setSelectedInvestigation(null);
+      }
+      fetchInvestigations();
+    } catch (err) {
+      console.error("Delete investigation error:", err);
     }
   };
 
@@ -178,9 +214,21 @@ export function InvestigationsView() {
                   >
                     {inv.priority}
                   </Badge>
-                  <Badge variant="neutral" size="sm">
-                    {inv.status}
-                  </Badge>
+                  <div className="flex items-center gap-1.5">
+                    <Badge variant="neutral" size="sm">
+                      {inv.status}
+                    </Badge>
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleDelete(inv.id);
+                      }}
+                      className="text-slate-500 hover:text-rose-400 p-1"
+                      title="Delete case"
+                    >
+                      <Trash2Icon className="w-3.5 h-3.5" />
+                    </button>
+                  </div>
                 </div>
 
                 <h4 className="text-xs font-bold text-slate-100 line-clamp-2">{inv.title}</h4>
@@ -211,21 +259,38 @@ export function InvestigationsView() {
               <div className="space-y-6">
                 {/* Case Header */}
                 <div className="border-b border-slate-800 pb-4 space-y-2">
-                  <div className="flex items-center gap-2">
-                    <Badge variant="info">CASE #{selectedInvestigation.id.slice(0, 8)}</Badge>
-                    <Badge variant="neutral">{selectedInvestigation.status}</Badge>
-                    <Badge
-                      variant={
-                        selectedInvestigation.priority === "critical"
-                          ? "critical"
-                          : selectedInvestigation.priority === "high"
-                          ? "high"
-                          : "info"
-                      }
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <Badge variant="info">CASE #{selectedInvestigation.id.slice(0, 8)}</Badge>
+                      <Badge variant="neutral">{selectedInvestigation.status}</Badge>
+                      <Badge
+                        variant={
+                          selectedInvestigation.priority === "critical"
+                            ? "critical"
+                            : selectedInvestigation.priority === "high"
+                            ? "high"
+                            : "info"
+                        }
+                      >
+                        {selectedInvestigation.priority} priority
+                      </Badge>
+                    </div>
+
+                    <button
+                      onClick={() => {
+                        setEditForm({
+                          title: selectedInvestigation.title,
+                          priority: selectedInvestigation.priority,
+                          status: selectedInvestigation.status,
+                        });
+                        setIsEditOpen(true);
+                      }}
+                      className="px-2.5 py-1 bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-medium rounded-lg border border-slate-700 transition"
                     >
-                      {selectedInvestigation.priority} priority
-                    </Badge>
+                      Edit Case
+                    </button>
                   </div>
+
                   <h3 className="text-base font-bold text-slate-100">
                     {selectedInvestigation.title}
                   </h3>
@@ -387,6 +452,76 @@ export function InvestigationsView() {
           </div>
         </form>
       </Modal>
+
+      {/* Edit Investigation Modal */}
+      {selectedInvestigation && (
+        <Modal
+          isOpen={isEditOpen}
+          onClose={() => setIsEditOpen(false)}
+          title="Edit Investigation Case"
+          subtitle={`Case #${selectedInvestigation.id.slice(0, 8)}`}
+          maxWidth="md"
+        >
+          <form onSubmit={handleUpdate} className="space-y-4">
+            <div>
+              <label className="block text-xs font-medium text-slate-300 mb-1">Case Title</label>
+              <input
+                type="text"
+                required
+                value={editForm.title || ""}
+                onChange={(e) => setEditForm({ ...editForm, title: e.target.value })}
+                className="w-full px-3 py-2 bg-slate-950 border border-slate-800 rounded-lg text-xs text-slate-100 focus:outline-none focus:border-sky-500"
+              />
+            </div>
+
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <label className="block text-xs font-medium text-slate-300 mb-1">Priority</label>
+                <select
+                  value={editForm.priority || selectedInvestigation.priority}
+                  onChange={(e) => setEditForm({ ...editForm, priority: e.target.value })}
+                  className="w-full px-3 py-2 bg-slate-950 border border-slate-800 rounded-lg text-xs text-slate-200 focus:outline-none focus:border-sky-500"
+                >
+                  <option value="low">Low Priority</option>
+                  <option value="medium">Medium Priority</option>
+                  <option value="high">High</option>
+                  <option value="critical">Critical</option>
+                </select>
+              </div>
+
+              <div>
+                <label className="block text-xs font-medium text-slate-300 mb-1">Status</label>
+                <select
+                  value={editForm.status || selectedInvestigation.status}
+                  onChange={(e) => setEditForm({ ...editForm, status: e.target.value })}
+                  className="w-full px-3 py-2 bg-slate-950 border border-slate-800 rounded-lg text-xs text-slate-200 focus:outline-none focus:border-sky-500"
+                >
+                  <option value="active">Active</option>
+                  <option value="completed">Completed</option>
+                  <option value="suspended">Suspended</option>
+                </select>
+              </div>
+            </div>
+
+            <div className="flex justify-end gap-2 pt-2">
+              <button
+                type="button"
+                onClick={() => setIsEditOpen(false)}
+                className="px-4 py-2 bg-slate-800 hover:bg-slate-700 text-xs font-medium text-slate-200 rounded-lg"
+              >
+                Cancel
+              </button>
+              <button
+                type="submit"
+                disabled={isUpdating}
+                className="px-4 py-2 bg-sky-600 hover:bg-sky-500 text-white text-xs font-semibold rounded-lg transition"
+              >
+                {isUpdating ? "Saving..." : "Save Changes"}
+              </button>
+            </div>
+          </form>
+        </Modal>
+      )}
     </div>
   );
 }

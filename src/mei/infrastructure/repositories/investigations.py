@@ -83,5 +83,30 @@ class InvestigationRepository:
         result = await self._session.execute(stmt)
         return list(result.scalars())
 
+    async def update(
+        self,
+        investigation: Investigation,
+        *,
+        title: str | None = None,
+        hypothesis: str | None = None,
+        priority: str | None = None,
+        status: str | None = None,
+    ) -> Investigation:
+        if title is not None:
+            investigation.title = title
+        if hypothesis is not None:
+            investigation.hypothesis = hypothesis
+        if priority is not None:
+            investigation.priority = priority
+        if status is not None:
+            investigation.status = status
+        await self._session.flush()
+        return investigation
+
+    async def delete(self, investigation: Investigation) -> None:
+        await self._session.delete(investigation)
+        await self._session.flush()
+
 
 __all__ = ["InvestigationRepository"]
+

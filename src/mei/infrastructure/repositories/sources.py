@@ -116,4 +116,57 @@ class SourceRepository:
         await self._session.flush()
 
 
+    async def update(
+        self,
+        source: Source,
+        *,
+        name: str | None = None,
+        source_type: SourceType | None = None,
+        base_url: str | None = None,
+        default_language: str | None = None,
+        enabled: bool | None = None,
+    ) -> Source:
+        if name is not None:
+            source.name = name
+        if source_type is not None:
+            source.source_type = source_type
+        if base_url is not None:
+            source.base_url = base_url
+        if default_language is not None:
+            source.default_language = default_language
+        if enabled is not None:
+            source.enabled = enabled
+        await self._session.flush()
+        return source
+
+    async def delete(self, source: Source) -> None:
+        await self._session.delete(source)
+        await self._session.flush()
+
+    async def update_endpoint(
+        self,
+        endpoint: SourceEndpoint,
+        *,
+        endpoint_type: EndpointType | None = None,
+        url: str | None = None,
+        schedule: str | None = None,
+        priority: int | None = None,
+    ) -> SourceEndpoint:
+        if endpoint_type is not None:
+            endpoint.endpoint_type = endpoint_type
+        if url is not None:
+            endpoint.url = url
+        if schedule is not None:
+            endpoint.schedule = schedule
+        if priority is not None:
+            endpoint.priority = priority
+        await self._session.flush()
+        return endpoint
+
+    async def delete_endpoint(self, endpoint: SourceEndpoint) -> None:
+        await self._session.delete(endpoint)
+        await self._session.flush()
+
+
 __all__ = ["SourceRepository"]
+

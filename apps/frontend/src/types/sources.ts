@@ -7,16 +7,68 @@ export type SourceType =
   | "think_tank"
   | "social_media"
   | "satellite"
+  | "news_outlet"
+  | "state_media"
+  | "government"
+  | "other"
   | "manual";
 
+export type EndpointType = "rss" | "html" | "api" | "scraper" | "telegram";
+
 export type DocumentStatus = "raw" | "parsed" | "extracted" | "embedded" | "failed";
+
+export type SourceEndpoint = {
+  id: UUID;
+  source_id: UUID;
+  endpoint_type: EndpointType;
+  url: string;
+  schedule?: string | null;
+  parser_name?: string | null;
+  priority: number;
+  last_success_at?: string | null;
+  last_failure_at?: string | null;
+  failure_count: number;
+};
 
 export type Source = {
   id: UUID;
   name: string;
   source_type: SourceType;
   base_url?: string | null;
+  jurisdiction?: string | null;
+  default_language?: string | null;
   enabled: boolean;
+  endpoints?: SourceEndpoint[];
+};
+
+export type CreateSourceRequest = {
+  name: string;
+  source_type: SourceType;
+  base_url?: string | null;
+  default_language?: string | null;
+  jurisdiction?: string | null;
+};
+
+export type UpdateSourceRequest = {
+  name?: string;
+  source_type?: SourceType;
+  base_url?: string | null;
+  default_language?: string | null;
+  enabled?: boolean;
+};
+
+export type CreateSourceEndpointRequest = {
+  endpoint_type: EndpointType;
+  url: string;
+  schedule?: string | null;
+  priority?: number;
+};
+
+export type UpdateSourceEndpointRequest = {
+  endpoint_type?: EndpointType;
+  url?: string;
+  schedule?: string | null;
+  priority?: number;
 };
 
 export type SubmitSourceRequest = {

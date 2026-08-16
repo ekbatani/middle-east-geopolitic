@@ -43,3 +43,12 @@ export type AddClaimEvidenceRequest = {
   confidence?: number | null;
   analyst_note?: string | null;
 };
+
+export type UpdateClaimRequest = {
+  claim_text?: string;
+  claim_type?: string;
+  verification_status?: VerificationStatus;
+  lifecycle_status?: LifecycleStatus;
+  confidence?: number | null;
+};
+

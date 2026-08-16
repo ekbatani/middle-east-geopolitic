@@ -7,6 +7,7 @@ import {
   ReportSummary,
   ReportType,
   ScopeType,
+  UpdateReportRequest,
   UUID,
 } from "../types";
 
@@ -28,6 +29,14 @@ export const reportsService = {
 
   async generateReport(payload: GenerateReportRequest): Promise<Report> {
     return apiClient.post<Report>("/api/v1/reports/generate", payload);
+  },
+
+  async updateReport(reportId: UUID, payload: UpdateReportRequest): Promise<Report> {
+    return apiClient.patch<Report>(`/api/v1/reports/${reportId}`, payload);
+  },
+
+  async deleteReport(reportId: UUID): Promise<void> {
+    return apiClient.delete<void>(`/api/v1/reports/${reportId}`);
   },
 
   async approveReport(reportId: UUID): Promise<Report> {

@@ -4,6 +4,7 @@ import {
   Investigation,
   InvestigationDetail,
   PaginationParams,
+  UpdateInvestigationRequest,
   UUID,
 } from "../types";
 
@@ -23,5 +24,16 @@ export const investigationsService = {
 
   async createInvestigation(payload: CreateInvestigationRequest): Promise<Investigation> {
     return apiClient.post<Investigation>("/api/v1/investigations", payload);
+  },
+
+  async updateInvestigation(
+    investigationId: UUID,
+    payload: UpdateInvestigationRequest
+  ): Promise<Investigation> {
+    return apiClient.patch<Investigation>(`/api/v1/investigations/${investigationId}`, payload);
+  },
+
+  async deleteInvestigation(investigationId: UUID): Promise<void> {
+    return apiClient.delete<void>(`/api/v1/investigations/${investigationId}`);
   },
 };

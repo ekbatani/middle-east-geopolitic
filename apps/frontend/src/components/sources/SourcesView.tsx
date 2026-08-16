@@ -4,6 +4,11 @@ import React, { useState, useEffect } from "react";
 import {
   Source,
   Document,
+  SourceType,
+  EndpointType,
+  CreateSourceRequest,
+  UpdateSourceRequest,
+  CreateSourceEndpointRequest,
   SubmitSourceRequest,
   SubmitSourceResponse,
 } from "../../types";
@@ -16,6 +21,7 @@ import {
   RefreshCwIcon,
   CheckCircleIcon,
   GlobeIcon,
+  Trash2Icon,
 } from "../common/Icons";
 import { Card, CardHeader } from "../common/Card";
 import { Badge } from "../common/Badge";
@@ -29,7 +35,7 @@ export function SourcesView() {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  // Submit Source Modal
+  // Ingest URL Modal
   const [isSubmitOpen, setIsSubmitOpen] = useState(false);
   const [submitForm, setSubmitForm] = useState<SubmitSourceRequest>({
     url: "",
@@ -37,6 +43,30 @@ export function SourcesView() {
   });
   const [submitResult, setSubmitResult] = useState<SubmitSourceResponse | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
+
+  // Create Source Modal
+  const [isCreateSourceOpen, setIsCreateSourceOpen] = useState(false);
+  const [createSourceForm, setCreateSourceForm] = useState<CreateSourceRequest>({
+    name: "",
+    source_type: "news_outlet",
+    base_url: "",
+    default_language: "en",
+  });
+  const [isCreatingSource, setIsCreatingSource] = useState(false);
+
+  // Edit Source Modal
+  const [editingSource, setEditingSource] = useState<Source | null>(null);
+  const [editSourceForm, setEditSourceForm] = useState<UpdateSourceRequest>({});
+  const [isUpdatingSource, setIsUpdatingSource] = useState(false);
+
+  // Add Endpoint Modal
+  const [endpointSourceId, setEndpointSourceId] = useState<string | null>(null);
+  const [endpointForm, setEndpointForm] = useState<CreateSourceEndpointRequest>({
+    endpoint_type: "rss",
+    url: "",
+    schedule: "critical",
+  });
+  const [isAddingEndpoint, setIsAddingEndpoint] = useState(false);
 
   const fetchData = async () => {
     setIsLoading(true);
@@ -78,6 +108,81 @@ export function SourcesView() {
     }
   };
 
+  const handleCreateSource = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!createSourceForm.name.trim()) return;
+
+    setIsCreatingSource(true);
+    try {
+      await sourcesService.createSource(createSourceForm);
+      setIsCreateSourceOpen(false);
+      setCreateSourceForm({
+        name: "",
+        source_type: "news_outlet",
+        base_url: "",
+        default_language: "en",
+      });
+      fetchData();
+    } catch (err) {
+      console.error("Create source error:", err);
+    } finally {
+      setIsCreatingSource(false);
+    }
+  };
+
+  const handleUpdateSource = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!editingSource) return;
+
+    setIsUpdatingSource(true);
+    try {
+      await sourcesService.updateSource(editingSource.id, editSourceForm);
+      setEditingSource(null);
+      fetchData();
+    } catch (err) {
+      console.error("Update source error:", err);
+    } finally {
+      setIsUpdatingSource(false);
+    }
+  };
+
+  const handleDeleteSource = async (sourceId: string) => {
+    if (!confirm("Are you sure you want to delete this source and all its endpoints?")) return;
+    try {
+      await sourcesService.deleteSource(sourceId);
+      fetchData();
+    } catch (err) {
+      console.error("Delete source error:", err);
+    }
+  };
+
+  const handleAddEndpoint = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!endpointSourceId || !endpointForm.url.trim()) return;
+
+    setIsAddingEndpoint(true);
+    try {
+      await sourcesService.addSourceEndpoint(endpointSourceId, endpointForm);
+      setEndpointSourceId(null);
+      setEndpointForm({ endpoint_type: "rss", url: "", schedule: "critical" });
+      fetchData();
+    } catch (err) {
+      console.error("Add endpoint error:", err);
+    } finally {
+      setIsAddingEndpoint(false);
+    }
+  };
+
+  const handleDeleteEndpoint = async (endpointId: string) => {
+    if (!confirm("Are you sure you want to delete this collection endpoint?")) return;
+    try {
+      await sourcesService.deleteSourceEndpoint(endpointId);
+      fetchData();
+    } catch (err) {
+      console.error("Delete endpoint error:", err);
+    }
+  };
+
   if (isLoading && sources.length === 0 && documents.length === 0) {
     return <LoadingState message="Connecting to intelligence feeds and document archive..." />;
   }
@@ -104,13 +209,20 @@ export function SourcesView() {
           </div>
         </div>
 
-        <div className="flex items-center gap-2.5">
+        <div className="flex flex-wrap items-center gap-2.5">
           <button
             onClick={fetchData}
             className="p-2 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-lg transition"
             title="Refresh"
           >
             <RefreshCwIcon className="w-4 h-4" />
+          </button>
+          <button
+            onClick={() => setIsCreateSourceOpen(true)}
+            className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-semibold rounded-lg border border-slate-700 transition"
+          >
+            <PlusIcon className="w-4 h-4" />
+            Register Feed
           </button>
           <button
             onClick={() => {
@@ -136,18 +248,42 @@ export function SourcesView() {
               icon={<GlobeIcon className="w-5 h-5" />}
             />
 
-            <div className="space-y-2 max-h-[440px] overflow-y-auto pr-1">
+            <div className="space-y-3 max-h-[500px] overflow-y-auto pr-1">
               {sources.map((s) => (
                 <div
                   key={s.id}
-                  className="p-3 bg-slate-950/60 border border-slate-800 rounded-lg space-y-1 text-xs"
+                  className="p-3.5 bg-slate-950/60 border border-slate-800 rounded-xl space-y-2 text-xs"
                 >
                   <div className="flex items-center justify-between">
-                    <span className="font-semibold text-slate-200">{s.name}</span>
-                    <Badge variant={s.enabled ? "success" : "neutral"} size="sm">
-                      {s.source_type}
-                    </Badge>
+                    <span className="font-bold text-slate-200">{s.name}</span>
+                    <div className="flex items-center gap-1.5">
+                      <Badge variant={s.enabled ? "success" : "neutral"} size="sm">
+                        {s.source_type}
+                      </Badge>
+                      <button
+                        onClick={() => {
+                          setEditingSource(s);
+                          setEditSourceForm({
+                            name: s.name,
+                            source_type: s.source_type,
+                            base_url: s.base_url,
+                            default_language: s.default_language,
+                            enabled: s.enabled,
+                          });
+                        }}
+                        className="text-[10px] text-slate-400 hover:text-sky-400 font-mono"
+                      >
+                        Edit
+                      </button>
+                      <button
+                        onClick={() => handleDeleteSource(s.id)}
+                        className="text-[10px] text-slate-500 hover:text-rose-400 font-mono"
+                      >
+                        Delete
+                      </button>
+                    </div>
                   </div>
+
                   {s.base_url && (
                     <a
                       href={s.base_url}
@@ -158,6 +294,44 @@ export function SourcesView() {
                       {s.base_url}
                     </a>
                   )}
+
+                  {/* Endpoints */}
+                  {s.endpoints && s.endpoints.length > 0 && (
+                    <div className="space-y-1.5 pt-1.5 border-t border-slate-900">
+                      <div className="text-[10px] font-bold text-slate-500 uppercase font-mono">
+                        Endpoints ({s.endpoints.length})
+                      </div>
+                      {s.endpoints.map((ep) => (
+                        <div
+                          key={ep.id}
+                          className="p-2 bg-slate-900/80 rounded border border-slate-800/80 flex items-center justify-between text-[11px]"
+                        >
+                          <div className="truncate max-w-[170px]">
+                            <span className="text-[9px] uppercase font-mono px-1 py-0.5 bg-slate-800 text-sky-300 rounded mr-1">
+                              {ep.endpoint_type}
+                            </span>
+                            <span className="text-slate-300 font-mono truncate">{ep.url}</span>
+                          </div>
+                          <button
+                            onClick={() => handleDeleteEndpoint(ep.id)}
+                            className="text-slate-500 hover:text-rose-400 text-xs ml-1"
+                            title="Remove endpoint"
+                          >
+                            &times;
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+
+                  <div className="pt-1 flex justify-end">
+                    <button
+                      onClick={() => setEndpointSourceId(s.id)}
+                      className="text-[10px] text-sky-400 hover:underline font-mono"
+                    >
+                      + Add Endpoint URL
+                    </button>
+                  </div>
                 </div>
               ))}
 
@@ -179,7 +353,7 @@ export function SourcesView() {
               icon={<FileTextIcon className="w-5 h-5" />}
             />
 
-            <div className="space-y-3 max-h-[440px] overflow-y-auto pr-1">
+            <div className="space-y-3 max-h-[500px] overflow-y-auto pr-1">
               {documents.map((doc) => (
                 <div
                   key={doc.id}
@@ -222,7 +396,262 @@ export function SourcesView() {
         </div>
       </div>
 
-      {/* Submit Source URL Modal */}
+      {/* Register Source Modal */}
+      <Modal
+        isOpen={isCreateSourceOpen}
+        onClose={() => setIsCreateSourceOpen(false)}
+        title="Register Curated Feed / Source"
+        subtitle="Add a new regional news publisher, official portal, or OSINT sensor provider"
+        maxWidth="md"
+      >
+        <form onSubmit={handleCreateSource} className="space-y-4">
+          <div>
+            <label className="block text-xs font-medium text-slate-300 mb-1">Source Name</label>
+            <input
+              type="text"
+              required
+              placeholder="e.g. Tehran Times or Reuters Middle East"
+              value={createSourceForm.name}
+              onChange={(e) => setCreateSourceForm({ ...createSourceForm, name: e.target.value })}
+              className="w-full px-3 py-2 bg-slate-950 border border-slate-800 rounded-lg text-xs text-slate-100 focus:outline-none focus:border-sky-500"
+            />
+          </div>
+
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <label className="block text-xs font-medium text-slate-300 mb-1">Source Type</label>
+              <select
+                value={createSourceForm.source_type}
+                onChange={(e) =>
+                  setCreateSourceForm({ ...createSourceForm, source_type: e.target.value as SourceType })
+                }
+                className="w-full px-3 py-2 bg-slate-950 border border-slate-800 rounded-lg text-xs text-slate-200 focus:outline-none focus:border-sky-500"
+              >
+                <option value="news_outlet">News Outlet</option>
+                <option value="state_media">State Media</option>
+                <option value="government">Government / Ministry</option>
+                <option value="think_tank">Think Tank / Research</option>
+                <option value="satellite">Satellite / Sensor Stream</option>
+                <option value="telegram">Telegram Broadcast</option>
+                <option value="other">Other</option>
+              </select>
+            </div>
+
+            <div>
+              <label className="block text-xs font-medium text-slate-300 mb-1">Default Language</label>
+              <input
+                type="text"
+                placeholder="en, ar, fa, he"
+                value={createSourceForm.default_language || "en"}
+                onChange={(e) =>
+                  setCreateSourceForm({ ...createSourceForm, default_language: e.target.value })
+                }
+                className="w-full px-3 py-2 bg-slate-950 border border-slate-800 rounded-lg text-xs text-slate-100 font-mono"
+              />
+            </div>
+          </div>
+
+          <div>
+            <label className="block text-xs font-medium text-slate-300 mb-1">Base Homepage URL</label>
+            <input
+              type="url"
+              placeholder="https://www.tehrantimes.com"
+              value={createSourceForm.base_url || ""}
+              onChange={(e) => setCreateSourceForm({ ...createSourceForm, base_url: e.target.value })}
+              className="w-full px-3 py-2 bg-slate-950 border border-slate-800 rounded-lg text-xs text-slate-100 font-mono"
+            />
+          </div>
+
+          <div className="flex justify-end gap-2 pt-2">
+            <button
+              type="button"
+              onClick={() => setIsCreateSourceOpen(false)}
+              className="px-4 py-2 bg-slate-800 hover:bg-slate-700 text-xs font-medium text-slate-200 rounded-lg"
+            >
+              Cancel
+            </button>
+            <button
+              type="submit"
+              disabled={isCreatingSource}
+              className="px-4 py-2 bg-sky-600 hover:bg-sky-500 text-white text-xs font-semibold rounded-lg transition"
+            >
+              {isCreatingSource ? "Saving..." : "Register Source"}
+            </button>
+          </div>
+        </form>
+      </Modal>
+
+      {/* Edit Source Modal */}
+      {editingSource && (
+        <Modal
+          isOpen={!!editingSource}
+          onClose={() => setEditingSource(null)}
+          title={`Edit Source: ${editingSource.name}`}
+          subtitle="Modify feed classification, homepage, and operational status"
+          maxWidth="md"
+        >
+          <form onSubmit={handleUpdateSource} className="space-y-4">
+            <div>
+              <label className="block text-xs font-medium text-slate-300 mb-1">Source Name</label>
+              <input
+                type="text"
+                required
+                value={editSourceForm.name || ""}
+                onChange={(e) => setEditSourceForm({ ...editSourceForm, name: e.target.value })}
+                className="w-full px-3 py-2 bg-slate-950 border border-slate-800 rounded-lg text-xs text-slate-100 focus:outline-none focus:border-sky-500"
+              />
+            </div>
+
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <label className="block text-xs font-medium text-slate-300 mb-1">Source Type</label>
+                <select
+                  value={editSourceForm.source_type || editingSource.source_type}
+                  onChange={(e) =>
+                    setEditSourceForm({ ...editSourceForm, source_type: e.target.value as SourceType })
+                  }
+                  className="w-full px-3 py-2 bg-slate-950 border border-slate-800 rounded-lg text-xs text-slate-200 focus:outline-none focus:border-sky-500"
+                >
+                  <option value="news_outlet">News Outlet</option>
+                  <option value="state_media">State Media</option>
+                  <option value="government">Government</option>
+                  <option value="think_tank">Think Tank</option>
+                  <option value="satellite">Satellite / Sensor</option>
+                  <option value="telegram">Telegram Broadcast</option>
+                  <option value="other">Other</option>
+                </select>
+              </div>
+
+              <div>
+                <label className="block text-xs font-medium text-slate-300 mb-1">Language</label>
+                <input
+                  type="text"
+                  value={editSourceForm.default_language || ""}
+                  onChange={(e) =>
+                    setEditSourceForm({ ...editSourceForm, default_language: e.target.value })
+                  }
+                  className="w-full px-3 py-2 bg-slate-950 border border-slate-800 rounded-lg text-xs text-slate-100 font-mono"
+                />
+              </div>
+            </div>
+
+            <div>
+              <label className="block text-xs font-medium text-slate-300 mb-1">Base URL</label>
+              <input
+                type="url"
+                value={editSourceForm.base_url || ""}
+                onChange={(e) => setEditSourceForm({ ...editSourceForm, base_url: e.target.value })}
+                className="w-full px-3 py-2 bg-slate-950 border border-slate-800 rounded-lg text-xs text-slate-100 font-mono"
+              />
+            </div>
+
+            <div className="flex items-center gap-2 pt-1">
+              <input
+                type="checkbox"
+                id="edit_src_enabled"
+                checked={editSourceForm.enabled ?? true}
+                onChange={(e) => setEditSourceForm({ ...editSourceForm, enabled: e.target.checked })}
+                className="rounded bg-slate-950 border-slate-800 text-sky-600 focus:ring-0"
+              />
+              <label htmlFor="edit_src_enabled" className="text-xs text-slate-200">
+                Active for automatic collector polling
+              </label>
+            </div>
+
+            <div className="flex justify-end gap-2 pt-2">
+              <button
+                type="button"
+                onClick={() => setEditingSource(null)}
+                className="px-4 py-2 bg-slate-800 hover:bg-slate-700 text-xs font-medium text-slate-200 rounded-lg"
+              >
+                Cancel
+              </button>
+              <button
+                type="submit"
+                disabled={isUpdatingSource}
+                className="px-4 py-2 bg-sky-600 hover:bg-sky-500 text-white text-xs font-semibold rounded-lg transition"
+              >
+                {isUpdatingSource ? "Saving..." : "Save Changes"}
+              </button>
+            </div>
+          </form>
+        </Modal>
+      )}
+
+      {/* Add Endpoint Modal */}
+      {endpointSourceId && (
+        <Modal
+          isOpen={!!endpointSourceId}
+          onClose={() => setEndpointSourceId(null)}
+          title="Add Collection Endpoint"
+          subtitle="Configure an RSS feed URL, Web Scraper entrypoint, or API feed"
+          maxWidth="md"
+        >
+          <form onSubmit={handleAddEndpoint} className="space-y-4">
+            <div>
+              <label className="block text-xs font-medium text-slate-300 mb-1">Endpoint URL</label>
+              <input
+                type="url"
+                required
+                placeholder="https://www.aljazeera.com/xml/rss/all.xml"
+                value={endpointForm.url}
+                onChange={(e) => setEndpointForm({ ...endpointForm, url: e.target.value })}
+                className="w-full px-3 py-2 bg-slate-950 border border-slate-800 rounded-lg text-xs text-slate-100 font-mono focus:outline-none focus:border-sky-500"
+              />
+            </div>
+
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <label className="block text-xs font-medium text-slate-300 mb-1">Endpoint Type</label>
+                <select
+                  value={endpointForm.endpoint_type}
+                  onChange={(e) =>
+                    setEndpointForm({ ...endpointForm, endpoint_type: e.target.value as EndpointType })
+                  }
+                  className="w-full px-3 py-2 bg-slate-950 border border-slate-800 rounded-lg text-xs text-slate-200 focus:outline-none focus:border-sky-500"
+                >
+                  <option value="rss">RSS / Atom Feed</option>
+                  <option value="scraper">Web Scraper / HTML</option>
+                  <option value="api">REST / JSON API</option>
+                  <option value="telegram">Telegram Channel</option>
+                </select>
+              </div>
+
+              <div>
+                <label className="block text-xs font-medium text-slate-300 mb-1">Polling Schedule Tier</label>
+                <select
+                  value={endpointForm.schedule || "critical"}
+                  onChange={(e) => setEndpointForm({ ...endpointForm, schedule: e.target.value })}
+                  className="w-full px-3 py-2 bg-slate-950 border border-slate-800 rounded-lg text-xs text-slate-200 focus:outline-none focus:border-sky-500"
+                >
+                  <option value="critical">Critical (Every 10 min)</option>
+                  <option value="normal">Normal (Hourly)</option>
+                  <option value="daily">Daily (Every 24 hours)</option>
+                </select>
+              </div>
+            </div>
+
+            <div className="flex justify-end gap-2 pt-2">
+              <button
+                type="button"
+                onClick={() => setEndpointSourceId(null)}
+                className="px-4 py-2 bg-slate-800 hover:bg-slate-700 text-xs font-medium text-slate-200 rounded-lg"
+              >
+                Cancel
+              </button>
+              <button
+                type="submit"
+                disabled={isAddingEndpoint}
+                className="px-4 py-2 bg-sky-600 hover:bg-sky-500 text-white text-xs font-semibold rounded-lg transition"
+              >
+                {isAddingEndpoint ? "Saving..." : "Add Endpoint"}
+              </button>
+            </div>
+          </form>
+        </Modal>
+      )}
+
+      {/* Ingest Source URL Modal */}
       <Modal
         isOpen={isSubmitOpen}
         onClose={() => setIsSubmitOpen(false)}

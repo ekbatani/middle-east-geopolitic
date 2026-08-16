@@ -8,6 +8,7 @@ import {
   ScenarioStatus,
   ScenarioUpdateRecommendation,
   ScopeType,
+  UpdateScenarioRequest,
   UUID,
 } from "../types";
 
@@ -43,6 +44,14 @@ export const scenariosService = {
 
   async createScenario(payload: CreateScenarioRequest): Promise<Scenario> {
     return apiClient.post<Scenario>("/api/v1/scenarios", payload);
+  },
+
+  async updateScenarioDetails(scenarioId: UUID, payload: UpdateScenarioRequest): Promise<Scenario> {
+    return apiClient.patch<Scenario>(`/api/v1/scenarios/${scenarioId}`, payload);
+  },
+
+  async deleteScenario(scenarioId: UUID): Promise<void> {
+    return apiClient.delete<void>(`/api/v1/scenarios/${scenarioId}`);
   },
 
   async updateScenario(scenarioId: UUID): Promise<ScenarioAssessment> {

@@ -20,3 +20,6 @@ export * from "./modelReviews.service";
 export * from "./imagery.service";
 export * from "./review.service";
 export * from "./health.service";
+export * from "./schedules.service";
+
+

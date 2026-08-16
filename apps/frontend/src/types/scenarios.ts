@@ -52,6 +52,15 @@ export type CreateScenarioRequest = {
   description?: string | null;
 };
 
+export type UpdateScenarioRequest = {
+  name?: string;
+  scenario_family?: ScenarioFamily;
+  time_horizon?: string;
+  description?: string | null;
+  status?: ScenarioStatus;
+};
+
+
 export type ScenarioSimulationRequest = {
   scope_type: ScopeType;
   scope_id?: UUID | null;

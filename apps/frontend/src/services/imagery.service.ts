@@ -4,6 +4,7 @@ import {
   LinkImageToBundleRequest,
   PaginationParams,
   SubmitImageRequest,
+  UpdateImageRequest,
   UUID,
   VerificationStatus,
 } from "../types";
@@ -27,7 +28,6 @@ export const imageryService = {
   getRawImageUrl(imageId: UUID): string {
     const baseUrl = getNormalizedApiUrl();
     const stored = getStoredAuth();
-    // Raw endpoint URL
     const url = new URL(`${baseUrl}/api/v1/imagery/${imageId}/raw`);
     if (stored.token) {
       url.searchParams.append("token", stored.token);
@@ -37,6 +37,14 @@ export const imageryService = {
 
   async submitImage(payload: SubmitImageRequest): Promise<ImageEvidence> {
     return apiClient.post<ImageEvidence>("/api/v1/imagery/submit", payload);
+  },
+
+  async updateImage(imageId: UUID, payload: UpdateImageRequest): Promise<ImageEvidence> {
+    return apiClient.patch<ImageEvidence>(`/api/v1/imagery/${imageId}`, payload);
+  },
+
+  async deleteImage(imageId: UUID): Promise<void> {
+    return apiClient.delete<void>(`/api/v1/imagery/${imageId}`);
   },
 
   async reanalyzeImage(imageId: UUID): Promise<ImageEvidence> {

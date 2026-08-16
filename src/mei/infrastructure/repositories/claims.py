@@ -106,5 +106,41 @@ class ClaimRepository:
         )
         return list(result.scalars())
 
+    async def update(
+        self,
+        claim: Claim,
+        *,
+        claim_text: str | None = None,
+        claim_type: str | None = None,
+        verification_status: VerificationStatus | None = None,
+        lifecycle_status: LifecycleStatus | None = None,
+        confidence: float | None = None,
+    ) -> Claim:
+        if claim_text is not None:
+            claim.claim_text = claim_text
+        if claim_type is not None:
+            claim.claim_type = claim_type
+        if verification_status is not None:
+            claim.verification_status = verification_status
+        if lifecycle_status is not None:
+            claim.lifecycle_status = lifecycle_status
+        if confidence is not None:
+            claim.confidence = confidence
+        await self._session.flush()
+        return claim
+
+    async def delete(self, claim: Claim) -> None:
+        await self._session.delete(claim)
+        await self._session.flush()
+
+    async def delete_evidence(self, evidence_id: UUID) -> bool:
+        ev = await self._session.get(ClaimEvidence, evidence_id)
+        if ev is not None:
+            await self._session.delete(ev)
+            await self._session.flush()
+            return True
+        return False
+
 
 __all__ = ["ClaimRepository"]
+

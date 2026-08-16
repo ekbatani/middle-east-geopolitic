@@ -145,6 +145,35 @@ async def _seed_risk_indicators(session: AsyncSession) -> None:
     )
 
 
+async def _seed_schedules(session: AsyncSession) -> None:
+    from mei.infrastructure.repositories.schedules import ScheduleRepository
+
+    repo = ScheduleRepository(session)
+    default_schedules = [
+        ("Daily News & OSINT Scraping", "daily_news_scraping", "0 6 * * *", 86400),
+        ("Satellite & Thermal Sensor Ingestion", "satellite_ingestion", "0 4 * * *", 86400),
+        ("Social & Official Broadcast Ingestion", "social_broadcast_scraping", "0 */12 * * *", 43200),
+        ("Active Conflict Risk Recalculation", "risk_recalculation", "0 * * * *", 3600),
+        ("Scenario Signposts & Probabilities Evaluation", "scenario_evaluation", "0 5 * * *", 86400),
+        ("Forecast Calibration & Due Questions Audit", "forecast_evaluation", "0 7 * * *", 86400),
+        ("Executive Daily Intelligence Brief Generation", "daily_brief_generation", "0 8 * * *", 86400),
+        ("Real-Time Intelligence Monitors Evaluation", "monitor_evaluation", "*/10 * * * *", 600),
+    ]
+    created = 0
+    for name, job_type, cron, interval in default_schedules:
+        existing = await repo.get_by_job_type(job_type)
+        if existing is None:
+            await repo.create(
+                name=name,
+                job_type=job_type,
+                cron_expression=cron,
+                interval_seconds=interval,
+                enabled=True,
+            )
+            created += 1
+    logger.info("seed.schedules_loaded", created=created)
+
+
 async def main_async() -> None:
     settings = get_settings()
     session_factory = get_session_factory()
@@ -153,6 +182,7 @@ async def main_async() -> None:
         await _seed_actors(session)
         await _seed_sources(session)
         await _seed_risk_indicators(session)
+        await _seed_schedules(session)
 
         identity = IdentityService(session, settings)
         user = await identity.register_user(
@@ -178,3 +208,4 @@ def main() -> None:
 
 if __name__ == "__main__":
     main()
+

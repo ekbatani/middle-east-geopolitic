@@ -1,9 +1,7 @@
 # Curated source registry for automated collection (design doc section 33,
 # ADR-007: curated sources before open-web autonomy). `schedule` selects
-# which Celery Beat tier polls the endpoint: `critical` (every 10 minutes)
-# or `normal` (hourly), per section 24.1. This file is the collector's
-# entire automated-polling universe -- extend it only with sources that
-# have passed source-policy review.
+# which collection tier polls the endpoint: `critical` (every 10 minutes)
+# or `normal` (hourly), per section 24.1.
 sources:
   - name: Al Jazeera English
     source_type: news_outlet
@@ -13,12 +11,12 @@ sources:
       - url: https://www.aljazeera.com/xml/rss/all.xml
         schedule: critical
 
-  - name: BBC News - World
+  - name: Reuters - Middle East News
     source_type: news_outlet
-    base_url: https://www.bbc.co.uk
+    base_url: https://www.reuters.com/world/middle-east
     default_language: en
     endpoints:
-      - url: https://feeds.bbci.co.uk/news/world/rss.xml
+      - url: https://www.reuters.com/arc/outboundfeeds/rss/category/world/middle-east/?outputType=xml
         schedule: critical
 
   - name: BBC News - Middle East
@@ -37,6 +35,14 @@ sources:
       - url: https://www.timesofisrael.com/feed/
         schedule: normal
 
+  - name: Tehran Times
+    source_type: news_outlet
+    base_url: https://www.tehrantimes.com
+    default_language: en
+    endpoints:
+      - url: https://www.tehrantimes.com/rss
+        schedule: normal
+
   - name: Middle East Eye
     source_type: news_outlet
     base_url: https://www.middleeasteye.net
@@ -52,3 +58,27 @@ sources:
     endpoints:
       - url: https://www.al-monitor.com/rss
         schedule: normal
+
+  - name: SABA News Agency (Yemen)
+    source_type: state_media
+    base_url: https://www.saba.ye
+    default_language: ar
+    endpoints:
+      - url: https://www.saba.ye/en/rss.xml
+        schedule: normal
+
+  - name: US Central Command (CENTCOM) Press Center
+    source_type: government
+    base_url: https://www.centcom.mil
+    default_language: en
+    endpoints:
+      - url: https://www.centcom.mil/MEDIA/PRESS-RELEASES/
+        schedule: critical
+
+  - name: NASA FIRMS Thermal Anomaly Sensor Feed - Red Sea & Persian Gulf
+    source_type: other
+    base_url: https://firms.modaps.eosdis.nasa.gov
+    default_language: en
+    endpoints:
+      - url: https://firms.modaps.eosdis.nasa.gov/api/area/csv/middle_east/
+        schedule: critical

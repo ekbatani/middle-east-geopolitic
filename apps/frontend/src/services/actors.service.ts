@@ -7,6 +7,7 @@ import {
   CreateActorAliasRequest,
   CreateActorRequest,
   PaginationParams,
+  UpdateActorRequest,
   UUID,
 } from "../types";
 
@@ -32,7 +33,19 @@ export const actorsService = {
     return apiClient.post<Actor>("/api/v1/actors", payload);
   },
 
+  async updateActor(actorId: UUID, payload: UpdateActorRequest): Promise<Actor> {
+    return apiClient.patch<Actor>(`/api/v1/actors/${actorId}`, payload);
+  },
+
+  async deleteActor(actorId: UUID): Promise<void> {
+    return apiClient.delete<void>(`/api/v1/actors/${actorId}`);
+  },
+
   async addActorAlias(actorId: UUID, payload: CreateActorAliasRequest): Promise<ActorAlias> {
     return apiClient.post<ActorAlias>(`/api/v1/actors/${actorId}/aliases`, payload);
+  },
+
+  async deleteActorAlias(actorId: UUID, aliasId: UUID): Promise<void> {
+    return apiClient.delete<void>(`/api/v1/actors/${actorId}/aliases/${aliasId}`);
   },
 };

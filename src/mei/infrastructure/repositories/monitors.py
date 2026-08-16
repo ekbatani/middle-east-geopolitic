@@ -61,6 +61,33 @@ class MonitorRepository:
         await self._session.flush()
         return True
 
+    async def update(
+        self,
+        monitor: Monitor,
+        *,
+        name: str | None = None,
+        monitor_type: str | None = None,
+        condition_json: dict[str, object] | None = None,
+        schedule: str | None = None,
+        delivery_channel: str | None = None,
+        enabled: bool | None = None,
+    ) -> Monitor:
+        if name is not None:
+            monitor.name = name
+        if monitor_type is not None:
+            monitor.monitor_type = monitor_type
+        if condition_json is not None:
+            monitor.condition_json = condition_json
+        if schedule is not None:
+            monitor.schedule = schedule
+        if delivery_channel is not None:
+            monitor.delivery_channel = delivery_channel
+        if enabled is not None:
+            monitor.enabled = enabled
+        await self._session.flush()
+        return monitor
+
+
     async def create_notification(
         self,
         *,

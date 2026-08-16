@@ -1,18 +1,16 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
-import { ImageEvidence, SubmitImageRequest } from "../../types";
+import { ImageEvidence, SubmitImageRequest, UpdateImageRequest, VerificationStatus } from "../../types";
 import { imageryService } from "../../services";
 import {
   SatelliteIcon,
   PlusIcon,
-  ActivityIcon,
   RefreshCwIcon,
-  CheckCircleIcon,
-  MapPinIcon,
   SparklesIcon,
+  Trash2Icon,
 } from "../common/Icons";
-import { Card, CardHeader } from "../common/Card";
+import { Card } from "../common/Card";
 import { Badge, VerificationBadge } from "../common/Badge";
 import { LoadingState, ErrorState } from "../common/LoadingState";
 import { Modal } from "../common/Modal";
@@ -31,6 +29,11 @@ export function ImageryView() {
   });
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isReanalyzing, setIsReanalyzing] = useState(false);
+
+  // Edit Image Modal
+  const [isEditOpen, setIsEditOpen] = useState(false);
+  const [editForm, setEditForm] = useState<UpdateImageRequest>({});
+  const [isUpdating, setIsUpdating] = useState(false);
 
   const fetchImages = async () => {
     setIsLoading(true);
@@ -65,6 +68,36 @@ export function ImageryView() {
       console.error("Submit image error:", err);
     } finally {
       setIsSubmitting(false);
+    }
+  };
+
+  const handleUpdateImage = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!selectedImage) return;
+
+    setIsUpdating(true);
+    try {
+      const updated = await imageryService.updateImage(selectedImage.id, editForm);
+      setIsEditOpen(false);
+      setSelectedImage(updated);
+      fetchImages();
+    } catch (err) {
+      console.error("Update image error:", err);
+    } finally {
+      setIsUpdating(false);
+    }
+  };
+
+  const handleDeleteImage = async (imageId: string) => {
+    if (!confirm("Are you sure you want to delete this satellite imagery record?")) return;
+    try {
+      await imageryService.deleteImage(imageId);
+      if (selectedImage?.id === imageId) {
+        setSelectedImage(null);
+      }
+      fetchImages();
+    } catch (err) {
+      console.error("Delete image error:", err);
     }
   };
 
@@ -136,9 +169,21 @@ export function ImageryView() {
             <div>
               <div className="flex items-center justify-between mb-2">
                 <VerificationBadge status={img.verification_status} />
-                <span className="text-[10px] font-mono text-slate-500">
-                  {img.content_type}
-                </span>
+                <div className="flex items-center gap-1.5">
+                  <span className="text-[10px] font-mono text-slate-500">
+                    {img.content_type}
+                  </span>
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      handleDeleteImage(img.id);
+                    }}
+                    className="text-slate-500 hover:text-rose-400 p-1"
+                    title="Delete image"
+                  >
+                    <Trash2Icon className="w-3.5 h-3.5" />
+                  </button>
+                </div>
               </div>
 
               {/* Thumbnail Placeholder with radar crosshairs */}
@@ -190,14 +235,30 @@ export function ImageryView() {
                 )}
               </div>
 
-              <button
-                onClick={() => handleReanalyze(selectedImage.id)}
-                disabled={isReanalyzing}
-                className="px-3 py-1.5 bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-medium rounded-lg border border-slate-700 transition flex items-center gap-1.5"
-              >
-                <SparklesIcon className="w-3.5 h-3.5 text-sky-400" />
-                {isReanalyzing ? "Re-analyzing..." : "Run AI Computer Vision"}
-              </button>
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={() => {
+                    setEditForm({
+                      caption: selectedImage.caption,
+                      latitude: selectedImage.latitude,
+                      longitude: selectedImage.longitude,
+                      verification_status: selectedImage.verification_status,
+                    });
+                    setIsEditOpen(true);
+                  }}
+                  className="px-3 py-1.5 bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-medium rounded-lg border border-slate-700 transition"
+                >
+                  Edit Metadata
+                </button>
+                <button
+                  onClick={() => handleReanalyze(selectedImage.id)}
+                  disabled={isReanalyzing}
+                  className="px-3 py-1.5 bg-sky-600 hover:bg-sky-500 text-white text-xs font-medium rounded-lg transition flex items-center gap-1.5"
+                >
+                  <SparklesIcon className="w-3.5 h-3.5 text-white" />
+                  {isReanalyzing ? "Re-analyzing..." : "Run AI Vision"}
+                </button>
+              </div>
             </div>
 
             {/* Simulated Imagery Inspector Frame */}
@@ -225,6 +286,90 @@ export function ImageryView() {
               </div>
             )}
           </div>
+        </Modal>
+      )}
+
+      {/* Edit Image Modal */}
+      {selectedImage && (
+        <Modal
+          isOpen={isEditOpen}
+          onClose={() => setIsEditOpen(false)}
+          title="Edit Imagery Metadata"
+          subtitle={`Update caption, geospatial geotag coordinates, and verification state`}
+          maxWidth="md"
+        >
+          <form onSubmit={handleUpdateImage} className="space-y-4">
+            <div>
+              <label className="block text-xs font-medium text-slate-300 mb-1">Caption</label>
+              <input
+                type="text"
+                value={editForm.caption || ""}
+                onChange={(e) => setEditForm({ ...editForm, caption: e.target.value })}
+                className="w-full px-3 py-2 bg-slate-950 border border-slate-800 rounded-lg text-xs text-slate-100 focus:outline-none focus:border-sky-500"
+              />
+            </div>
+
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <label className="block text-xs font-medium text-slate-300 mb-1">Latitude</label>
+                <input
+                  type="number"
+                  step="0.0001"
+                  value={editForm.latitude ?? ""}
+                  onChange={(e) =>
+                    setEditForm({ ...editForm, latitude: e.target.value ? Number(e.target.value) : undefined })
+                  }
+                  className="w-full px-3 py-2 bg-slate-950 border border-slate-800 rounded-lg text-xs text-slate-100 font-mono"
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs font-medium text-slate-300 mb-1">Longitude</label>
+                <input
+                  type="number"
+                  step="0.0001"
+                  value={editForm.longitude ?? ""}
+                  onChange={(e) =>
+                    setEditForm({ ...editForm, longitude: e.target.value ? Number(e.target.value) : undefined })
+                  }
+                  className="w-full px-3 py-2 bg-slate-950 border border-slate-800 rounded-lg text-xs text-slate-100 font-mono"
+                />
+              </div>
+            </div>
+
+            <div>
+              <label className="block text-xs font-medium text-slate-300 mb-1">Verification Status</label>
+              <select
+                value={editForm.verification_status || selectedImage.verification_status}
+                onChange={(e) =>
+                  setEditForm({ ...editForm, verification_status: e.target.value as VerificationStatus })
+                }
+                className="w-full px-3 py-2 bg-slate-950 border border-slate-800 rounded-lg text-xs text-slate-200 focus:outline-none focus:border-sky-500"
+              >
+                <option value="unverified">Unverified</option>
+                <option value="disputed">Disputed</option>
+                <option value="verified">Verified</option>
+                <option value="debunked">Debunked</option>
+              </select>
+            </div>
+
+            <div className="flex justify-end gap-2 pt-2">
+              <button
+                type="button"
+                onClick={() => setIsEditOpen(false)}
+                className="px-4 py-2 bg-slate-800 hover:bg-slate-700 text-xs font-medium text-slate-200 rounded-lg"
+              >
+                Cancel
+              </button>
+              <button
+                type="submit"
+                disabled={isUpdating}
+                className="px-4 py-2 bg-sky-600 hover:bg-sky-500 text-white text-xs font-semibold rounded-lg transition"
+              >
+                {isUpdating ? "Saving..." : "Save Changes"}
+              </button>
+            </div>
+          </form>
         </Modal>
       )}
 

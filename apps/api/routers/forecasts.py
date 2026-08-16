@@ -166,3 +166,66 @@ async def resolve_forecast(
         metadata={"outcome": str(payload.outcome)},
     )
     return ForecastOut.from_domain(forecast)
+
+
+class UpdateForecastRequest(BaseModel):
+    question: str | None = None
+    probability: float | None = None
+    confidence: float | None = None
+    resolution_date: date | None = None
+    status: ForecastStatus | None = None
+
+
+@router.patch("/{forecast_id}", response_model=ForecastOut)
+async def update_forecast(
+    forecast_id: UUID,
+    payload: UpdateForecastRequest,
+    session: SessionDep,
+    principal: IssuePrincipal,
+) -> ForecastOut:
+    repo = ForecastRepository(session)
+    forecast = await repo.get(forecast_id)
+    if forecast is None:
+        raise NotFoundError(f"Forecast {forecast_id} not found")
+
+    updated = await repo.update(
+        forecast,
+        question=payload.question,
+        probability=payload.probability,
+        confidence=payload.confidence,
+        resolution_date=payload.resolution_date,
+        status=payload.status,
+    )
+    await audit(
+        session,
+        principal,
+        "forecast.updated",
+        resource_type="forecast_record",
+        resource_id=str(forecast_id),
+        metadata=payload.model_dump(exclude_unset=True),
+    )
+    await session.commit()
+    return ForecastOut.from_domain(updated)
+
+
+@router.delete("/{forecast_id}", status_code=204)
+async def delete_forecast(
+    forecast_id: UUID,
+    session: SessionDep,
+    principal: IssuePrincipal,
+) -> None:
+    repo = ForecastRepository(session)
+    forecast = await repo.get(forecast_id)
+    if forecast is None:
+        raise NotFoundError(f"Forecast {forecast_id} not found")
+
+    await repo.delete(forecast)
+    await audit(
+        session,
+        principal,
+        "forecast.deleted",
+        resource_type="forecast_record",
+        resource_id=str(forecast_id),
+    )
+    await session.commit()
+

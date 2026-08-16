@@ -115,5 +115,27 @@ class ReportRepository:
         await self._session.flush()
         return report
 
+    async def update(
+        self,
+        report: Report,
+        *,
+        title: str | None = None,
+        content_markdown: str | None = None,
+        status: ReportStatus | None = None,
+    ) -> Report:
+        if title is not None:
+            report.title = title
+        if content_markdown is not None:
+            report.content_markdown = content_markdown
+        if status is not None:
+            report.status = status
+        await self._session.flush()
+        return report
+
+    async def delete(self, report: Report) -> None:
+        await self._session.delete(report)
+        await self._session.flush()
+
 
 __all__ = ["ReportRepository"]
+

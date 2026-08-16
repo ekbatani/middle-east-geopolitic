@@ -55,6 +55,14 @@ class CreateClaimRequest(BaseModel):
     event_id: UUID | None = None
 
 
+class UpdateClaimRequest(BaseModel):
+    claim_text: str | None = None
+    claim_type: str | None = None
+    verification_status: VerificationStatus | None = None
+    lifecycle_status: LifecycleStatus | None = None
+    confidence: float | None = None
+
+
 class AddClaimEvidenceRequest(BaseModel):
     document_id: UUID
     stance: EvidenceStance
@@ -71,6 +79,60 @@ async def get_claim(claim_id: UUID, session: SessionDep, _principal: ReadPrincip
     if claim is None:
         raise NotFoundError(f"Claim {claim_id} not found")
     return ClaimOut.model_validate(claim)
+
+
+@router.patch("/{claim_id}", response_model=ClaimOut)
+async def update_claim(
+    claim_id: UUID,
+    payload: UpdateClaimRequest,
+    session: SessionDep,
+    principal: CreatePrincipal,
+) -> ClaimOut:
+    repo = ClaimRepository(session)
+    claim = await repo.get(claim_id)
+    if claim is None:
+        raise NotFoundError(f"Claim {claim_id} not found")
+
+    updated = await repo.update(
+        claim,
+        claim_text=payload.claim_text,
+        claim_type=payload.claim_type,
+        verification_status=payload.verification_status,
+        lifecycle_status=payload.lifecycle_status,
+        confidence=payload.confidence,
+    )
+    await audit(
+        session,
+        principal,
+        "claim.updated",
+        resource_type="claim",
+        resource_id=str(claim_id),
+        metadata=payload.model_dump(exclude_unset=True),
+    )
+    await session.commit()
+    return ClaimOut.model_validate(updated)
+
+
+@router.delete("/{claim_id}", status_code=204)
+async def delete_claim(
+    claim_id: UUID,
+    session: SessionDep,
+    principal: CreatePrincipal,
+) -> None:
+    repo = ClaimRepository(session)
+    claim = await repo.get(claim_id)
+    if claim is None:
+        raise NotFoundError(f"Claim {claim_id} not found")
+
+    await repo.delete(claim)
+    await audit(
+        session,
+        principal,
+        "claim.deleted",
+        resource_type="claim",
+        resource_id=str(claim_id),
+    )
+    await session.commit()
 
 
 @router.get("/{claim_id}/evidence", response_model=list[ClaimEvidenceOut])
@@ -104,6 +166,7 @@ async def create_claim(
     await audit(
         session, principal, "claim.created", resource_type="claim", resource_id=str(claim.id)
     )
+    await session.commit()
     return ClaimOut.model_validate(claim)
 
 
@@ -123,4 +186,25 @@ async def add_claim_evidence(
         resource_id=str(claim_id),
         metadata={"claim_evidence_id": str(evidence.id)},
     )
+    await session.commit()
     return ClaimEvidenceOut.model_validate(evidence)
+
+
+@router.delete("/evidence/{evidence_id}", status_code=204)
+async def delete_claim_evidence(
+    evidence_id: UUID,
+    session: SessionDep,
+    principal: CreatePrincipal,
+) -> None:
+    repo = ClaimRepository(session)
+    deleted = await repo.delete_evidence(evidence_id)
+    if not deleted:
+        raise NotFoundError(f"Evidence {evidence_id} not found")
+    await audit(
+        session,
+        principal,
+        "claim.evidence_deleted",
+        resource_type="claim_evidence",
+        resource_id=str(evidence_id),
+    )
+    await session.commit()

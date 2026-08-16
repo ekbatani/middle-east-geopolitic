@@ -190,3 +190,62 @@ async def publish_report(
         session, principal, "report.published", resource_type="report", resource_id=str(report_id)
     )
     return ReportOut.from_domain(report)
+
+
+class UpdateReportRequest(BaseModel):
+    title: str | None = None
+    content_markdown: str | None = None
+    status: ReportStatus | None = None
+
+
+@router.patch("/{report_id}", response_model=ReportOut)
+async def update_report(
+    report_id: UUID,
+    payload: UpdateReportRequest,
+    session: SessionDep,
+    principal: ApprovePrincipal,
+) -> ReportOut:
+    repo = ReportRepository(session)
+    report = await repo.get(report_id)
+    if report is None:
+        raise NotFoundError(f"Report {report_id} not found")
+
+    updated = await repo.update(
+        report,
+        title=payload.title,
+        content_markdown=payload.content_markdown,
+        status=payload.status,
+    )
+    await audit(
+        session,
+        principal,
+        "report.updated",
+        resource_type="report",
+        resource_id=str(report_id),
+        metadata=payload.model_dump(exclude_unset=True),
+    )
+    await session.commit()
+    return ReportOut.from_domain(updated)
+
+
+@router.delete("/{report_id}", status_code=204)
+async def delete_report(
+    report_id: UUID,
+    session: SessionDep,
+    principal: ApprovePrincipal,
+) -> None:
+    repo = ReportRepository(session)
+    report = await repo.get(report_id)
+    if report is None:
+        raise NotFoundError(f"Report {report_id} not found")
+
+    await repo.delete(report)
+    await audit(
+        session,
+        principal,
+        "report.deleted",
+        resource_type="report",
+        resource_id=str(report_id),
+    )
+    await session.commit()
+

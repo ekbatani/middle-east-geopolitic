@@ -19,7 +19,9 @@ import { ReviewQueueView } from "../components/review/ReviewQueueView";
 import { DisagreementsView } from "../components/analysis/DisagreementsView";
 import { ImageryView } from "../components/imagery/ImageryView";
 import { SourcesView } from "../components/sources/SourcesView";
+import { PipelineSchedulerView } from "../components/pipeline/PipelineSchedulerView";
 import { reviewService } from "../services";
+
 
 function MainApp() {
   const [activeSection, setActiveSection] = useState<NavSection>("dashboard");
@@ -79,7 +81,10 @@ function MainApp() {
         return <ImageryView />;
       case "sources":
         return <SourcesView />;
+      case "pipeline":
+        return <PipelineSchedulerView />;
       default:
+
         return <IntelligenceDashboard onNavigate={(s) => setActiveSection(s as NavSection)} />;
     }
   };

@@ -59,3 +59,12 @@ export type CreateActorAliasRequest = {
   language?: string | null;
   alias_type?: string | null;
 };
+
+export type UpdateActorRequest = {
+  canonical_name?: string;
+  actor_type?: ActorType;
+  native_name?: string | null;
+  description?: string | null;
+  status?: ActorStatus;
+};
+

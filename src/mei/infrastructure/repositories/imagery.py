@@ -105,5 +105,30 @@ class ImageryRepository:
         await self._session.flush()
         return image
 
+    async def update(
+        self,
+        image: ImageEvidence,
+        *,
+        caption: str | None = None,
+        latitude: float | None = None,
+        longitude: float | None = None,
+        verification_status: VerificationStatus | None = None,
+    ) -> ImageEvidence:
+        if caption is not None:
+            image.caption = caption
+        if latitude is not None:
+            image.latitude = latitude
+        if longitude is not None:
+            image.longitude = longitude
+        if verification_status is not None:
+            image.verification_status = verification_status
+        await self._session.flush()
+        return image
+
+    async def delete(self, image: ImageEvidence) -> None:
+        await self._session.delete(image)
+        await self._session.flush()
+
 
 __all__ = ["ImageryRepository"]
+

@@ -34,7 +34,9 @@ export type NavSection =
   | "review"
   | "disagreements"
   | "imagery"
-  | "sources";
+  | "sources"
+  | "pipeline";
+
 
 type SidebarProps = {
   activeSection: NavSection;
@@ -89,9 +91,11 @@ export function Sidebar({ activeSection, onSelectSection, pendingReviewCount }: 
         { id: "disagreements", label: "Multi-Model & Stances", icon: BotIcon },
         { id: "imagery", label: "Satellite & Imagery", icon: SatelliteIcon },
         { id: "sources", label: "Sources & Ingestion", icon: DatabaseIcon },
+        { id: "pipeline", label: "Pipeline & Schedulers", icon: ActivityIcon },
       ],
     },
   ];
+
 
   return (
     <aside className="w-64 bg-slate-950/80 border-r border-slate-800/80 flex flex-col justify-between select-none h-[calc(100vh-4rem)] sticky top-16 overflow-y-auto custom-scrollbar">

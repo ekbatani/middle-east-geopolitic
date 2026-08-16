@@ -39,3 +39,10 @@ export type GenerateReportRequest = {
   scope_type?: ScopeType | null;
   scope_id?: UUID | null;
 };
+
+export type UpdateReportRequest = {
+  title?: string;
+  content_markdown?: string;
+  status?: ReportStatus;
+};
+

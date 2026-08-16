@@ -7,6 +7,7 @@ import {
   ReportType,
   ReportStatus,
   GenerateReportRequest,
+  UpdateReportRequest,
   ScopeType,
 } from "../../types";
 import { reportsService } from "../../services";
@@ -16,11 +17,11 @@ import {
   ActivityIcon,
   RefreshCwIcon,
   CheckCircleIcon,
-  XCircleIcon,
   GlobeIcon,
   SparklesIcon,
+  Trash2Icon,
 } from "../common/Icons";
-import { Card, CardHeader } from "../common/Card";
+import { Card } from "../common/Card";
 import { Badge } from "../common/Badge";
 import { LoadingState, ErrorState } from "../common/LoadingState";
 import { Modal } from "../common/Modal";
@@ -42,6 +43,11 @@ export function ReportsView() {
     scope_type: "regional",
   });
   const [isGenerating, setIsGenerating] = useState(false);
+
+  // Edit Report Modal
+  const [isEditOpen, setIsEditOpen] = useState(false);
+  const [editForm, setEditForm] = useState<UpdateReportRequest>({});
+  const [isUpdating, setIsUpdating] = useState(false);
 
   const fetchReports = async () => {
     setIsLoading(true);
@@ -85,6 +91,36 @@ export function ReportsView() {
       console.error("Generate report error:", err);
     } finally {
       setIsGenerating(false);
+    }
+  };
+
+  const handleUpdate = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!selectedReport) return;
+
+    setIsUpdating(true);
+    try {
+      const updated = await reportsService.updateReport(selectedReport.id, editForm);
+      setIsEditOpen(false);
+      setSelectedReport(updated);
+      fetchReports();
+    } catch (err) {
+      console.error("Update report error:", err);
+    } finally {
+      setIsUpdating(false);
+    }
+  };
+
+  const handleDelete = async (reportId: string) => {
+    if (!confirm("Are you sure you want to delete this report?")) return;
+    try {
+      await reportsService.deleteReport(reportId);
+      if (selectedReport?.id === reportId) {
+        setSelectedReport(null);
+      }
+      fetchReports();
+    } catch (err) {
+      console.error("Delete report error:", err);
     }
   };
 
@@ -187,18 +223,30 @@ export function ReportsView() {
                   <Badge variant="info" size="sm">
                     {r.report_type.replace("_", " ")}
                   </Badge>
-                  <Badge
-                    variant={
-                      r.status === "published"
-                        ? "success"
-                        : r.status === "approved"
-                        ? "info"
-                        : "warning"
-                    }
-                    size="sm"
-                  >
-                    {r.status}
-                  </Badge>
+                  <div className="flex items-center gap-1.5">
+                    <Badge
+                      variant={
+                        r.status === "published"
+                          ? "success"
+                          : r.status === "approved"
+                          ? "info"
+                          : "warning"
+                      }
+                      size="sm"
+                    >
+                      {r.status}
+                    </Badge>
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleDelete(r.id);
+                      }}
+                      className="text-slate-500 hover:text-rose-400 p-1"
+                      title="Delete report"
+                    >
+                      <Trash2Icon className="w-3.5 h-3.5" />
+                    </button>
+                  </div>
                 </div>
 
                 <h4 className="text-xs font-bold text-slate-100 line-clamp-2">{r.title}</h4>
@@ -249,6 +297,20 @@ export function ReportsView() {
 
                   {/* Workflow Actions */}
                   <div className="flex items-center gap-2">
+                    <button
+                      onClick={() => {
+                        setEditForm({
+                          title: selectedReport.title,
+                          content_markdown: selectedReport.content_markdown,
+                          status: selectedReport.status,
+                        });
+                        setIsEditOpen(true);
+                      }}
+                      className="px-2.5 py-1.5 bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-medium rounded-lg border border-slate-700 transition"
+                    >
+                      Edit Content
+                    </button>
+
                     {selectedReport.status === "draft" && (
                       <button
                         onClick={() => handleApprove(selectedReport.id)}
@@ -368,6 +430,73 @@ export function ReportsView() {
           </div>
         </form>
       </Modal>
+
+      {/* Edit Report Modal */}
+      {selectedReport && (
+        <Modal
+          isOpen={isEditOpen}
+          onClose={() => setIsEditOpen(false)}
+          title="Edit Intelligence Report"
+          subtitle={`Report #${selectedReport.id.slice(0, 8)}`}
+          maxWidth="lg"
+        >
+          <form onSubmit={handleUpdate} className="space-y-4">
+            <div>
+              <label className="block text-xs font-medium text-slate-300 mb-1">Report Title</label>
+              <input
+                type="text"
+                required
+                value={editForm.title || ""}
+                onChange={(e) => setEditForm({ ...editForm, title: e.target.value })}
+                className="w-full px-3 py-2 bg-slate-950 border border-slate-800 rounded-lg text-xs text-slate-100 focus:outline-none focus:border-sky-500"
+              />
+            </div>
+
+            <div>
+              <label className="block text-xs font-medium text-slate-300 mb-1">Status</label>
+              <select
+                value={editForm.status || selectedReport.status}
+                onChange={(e) => setEditForm({ ...editForm, status: e.target.value as ReportStatus })}
+                className="w-full px-3 py-2 bg-slate-950 border border-slate-800 rounded-lg text-xs text-slate-200 focus:outline-none focus:border-sky-500"
+              >
+                <option value="draft">Draft</option>
+                <option value="under_review">Under Review</option>
+                <option value="approved">Approved</option>
+                <option value="published">Published</option>
+                <option value="rejected">Rejected</option>
+              </select>
+            </div>
+
+            <div>
+              <label className="block text-xs font-medium text-slate-300 mb-1">Markdown Content</label>
+              <textarea
+                rows={10}
+                required
+                value={editForm.content_markdown || ""}
+                onChange={(e) => setEditForm({ ...editForm, content_markdown: e.target.value })}
+                className="w-full px-3 py-2 bg-slate-950 border border-slate-800 rounded-lg text-xs text-slate-100 focus:outline-none focus:border-sky-500 font-mono leading-relaxed"
+              />
+            </div>
+
+            <div className="flex justify-end gap-2 pt-2">
+              <button
+                type="button"
+                onClick={() => setIsEditOpen(false)}
+                className="px-4 py-2 bg-slate-800 hover:bg-slate-700 text-xs font-medium text-slate-200 rounded-lg"
+              >
+                Cancel
+              </button>
+              <button
+                type="submit"
+                disabled={isUpdating}
+                className="px-4 py-2 bg-sky-600 hover:bg-sky-500 text-white text-xs font-semibold rounded-lg transition"
+              >
+                {isUpdating ? "Saving..." : "Save Changes"}
+              </button>
+            </div>
+          </form>
+        </Modal>
+      )}
     </div>
   );
 }

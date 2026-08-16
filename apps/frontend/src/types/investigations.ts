@@ -39,3 +39,11 @@ export type CreateInvestigationRequest = {
   priority?: string;
   assigned_to?: string | null;
 };
+
+export type UpdateInvestigationRequest = {
+  title?: string;
+  hypothesis?: string;
+  priority?: string;
+  status?: string;
+};
+

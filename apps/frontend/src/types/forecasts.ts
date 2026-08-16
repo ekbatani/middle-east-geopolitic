@@ -34,6 +34,15 @@ export type ResolveForecastRequest = {
   evaluation_note?: string | null;
 };
 
+export type UpdateForecastRequest = {
+  question?: string;
+  probability?: number;
+  confidence?: number;
+  resolution_date?: string;
+  status?: ForecastStatus;
+};
+
+
 export type CalibrationBucket = {
   lower: number;
   upper: number;

@@ -5,21 +5,21 @@ import {
   Claim,
   ClaimEvidence,
   CreateClaimRequest,
+  UpdateClaimRequest,
   AddClaimEvidenceRequest,
   EvidenceStance,
   Document,
+  VerificationStatus,
+  LifecycleStatus,
 } from "../../types";
 import { claimsService, documentsService } from "../../services";
 import {
   ShieldIcon,
   PlusIcon,
-  ActivityIcon,
   RefreshCwIcon,
-  FileTextIcon,
-  CheckCircleIcon,
-  XCircleIcon,
+  Trash2Icon,
 } from "../common/Icons";
-import { Card, CardHeader } from "../common/Card";
+import { Card } from "../common/Card";
 import { Badge, VerificationBadge } from "../common/Badge";
 import { LoadingState, ErrorState } from "../common/LoadingState";
 import { Modal } from "../common/Modal";
@@ -40,6 +40,11 @@ export function ClaimsView() {
     claim_type: "kinetic_assertion",
   });
   const [isCreating, setIsCreating] = useState(false);
+
+  // Edit Claim Modal
+  const [isEditOpen, setIsEditOpen] = useState(false);
+  const [editForm, setEditForm] = useState<UpdateClaimRequest>({});
+  const [isUpdating, setIsUpdating] = useState(false);
 
   // Add Evidence Modal
   const [isAddEvidenceOpen, setIsAddEvidenceOpen] = useState(false);
@@ -108,6 +113,36 @@ export function ClaimsView() {
     }
   };
 
+  const handleUpdateClaim = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!selectedClaim) return;
+    setIsUpdating(true);
+    try {
+      const updated = await claimsService.updateClaim(selectedClaim.id, editForm);
+      setIsEditOpen(false);
+      setSelectedClaim(updated);
+      fetchClaims();
+    } catch (err) {
+      console.error("Update claim error:", err);
+    } finally {
+      setIsUpdating(false);
+    }
+  };
+
+  const handleDeleteClaim = async (claimId: string) => {
+    if (!confirm("Are you sure you want to delete this claim and all associated verification links?")) return;
+    try {
+      await claimsService.deleteClaim(claimId);
+      if (selectedClaim?.id === claimId) {
+        setSelectedClaim(null);
+        setEvidenceList([]);
+      }
+      fetchClaims();
+    } catch (err) {
+      console.error("Delete claim error:", err);
+    }
+  };
+
   const handleAddEvidence = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!selectedClaim || !evidenceForm.document_id || !evidenceForm.excerpt.trim()) return;
@@ -130,6 +165,17 @@ export function ClaimsView() {
       console.error("Add evidence error:", err);
     } finally {
       setIsAddingEvidence(false);
+    }
+  };
+
+  const handleDeleteEvidence = async (evidenceId: string) => {
+    if (!selectedClaim) return;
+    try {
+      await claimsService.deleteClaimEvidence(evidenceId);
+      const ev = await claimsService.getClaimEvidence(selectedClaim.id);
+      setEvidenceList(ev);
+    } catch (err) {
+      console.error("Delete evidence error:", err);
     }
   };
 
@@ -230,15 +276,44 @@ export function ClaimsView() {
                     <div className="flex items-center gap-2">
                       <VerificationBadge status={selectedClaim.verification_status} />
                       <Badge variant="neutral">{selectedClaim.lifecycle_status}</Badge>
+                      <span className="text-xs text-slate-400 font-mono">
+                        Conf: {selectedClaim.confidence ? `${Math.round(selectedClaim.confidence * 100)}%` : "N/A"}
+                      </span>
                     </div>
 
-                    <button
-                      onClick={() => setIsAddEvidenceOpen(true)}
-                      className="px-3 py-1.5 bg-sky-600 hover:bg-sky-500 text-white text-xs font-semibold rounded-lg shadow transition flex items-center gap-1"
-                    >
-                      <PlusIcon className="w-3.5 h-3.5" />
-                      Attach Evidence
-                    </button>
+                    <div className="flex items-center gap-2">
+                      <button
+                        onClick={() => {
+                          setEditForm({
+                            claim_text: selectedClaim.claim_text,
+                            claim_type: selectedClaim.claim_type,
+                            verification_status: selectedClaim.verification_status,
+                            lifecycle_status: selectedClaim.lifecycle_status,
+                            confidence: selectedClaim.confidence,
+                          });
+                          setIsEditOpen(true);
+                        }}
+                        className="px-2.5 py-1 bg-slate-800 hover:bg-slate-700 text-xs text-slate-300 font-medium rounded-lg border border-slate-700 transition"
+                      >
+                        Edit Claim
+                      </button>
+
+                      <button
+                        onClick={() => setIsAddEvidenceOpen(true)}
+                        className="px-3 py-1 bg-sky-600 hover:bg-sky-500 text-white text-xs font-semibold rounded-lg shadow transition flex items-center gap-1"
+                      >
+                        <PlusIcon className="w-3.5 h-3.5" />
+                        Attach Evidence
+                      </button>
+
+                      <button
+                        onClick={() => handleDeleteClaim(selectedClaim.id)}
+                        className="p-1 bg-rose-950/40 hover:bg-rose-900 border border-rose-800 text-rose-300 rounded-lg transition"
+                        title="Delete Claim"
+                      >
+                        <Trash2Icon className="w-3.5 h-3.5" />
+                      </button>
+                    </div>
                   </div>
 
                   <p className="text-sm font-semibold text-slate-100 bg-slate-950 p-3.5 rounded-xl border border-slate-800 leading-relaxed">
@@ -280,10 +355,19 @@ export function ClaimsView() {
                                 Stance: {ev.stance}
                               </Badge>
 
-                              <span className="text-[10px] text-slate-500 font-mono">
-                                Conf: {ev.confidence ? `${Math.round(ev.confidence * 100)}%` : "N/A"} &bull;{" "}
-                                {new Date(ev.created_at).toLocaleDateString()}
-                              </span>
+                              <div className="flex items-center gap-3">
+                                <span className="text-[10px] text-slate-500 font-mono">
+                                  Conf: {ev.confidence ? `${Math.round(ev.confidence * 100)}%` : "N/A"} &bull;{" "}
+                                  {new Date(ev.created_at).toLocaleDateString()}
+                                </span>
+                                <button
+                                  onClick={() => handleDeleteEvidence(ev.id)}
+                                  className="text-slate-500 hover:text-rose-400 text-xs"
+                                  title="Remove evidence link"
+                                >
+                                  &times; Remove
+                                </button>
+                              </div>
                             </div>
 
                             <p className="text-xs text-slate-200 leading-relaxed font-sans italic bg-slate-900/60 p-2.5 rounded-lg border border-slate-800/80">
@@ -369,6 +453,95 @@ export function ClaimsView() {
           </div>
         </form>
       </Modal>
+
+      {/* Edit Claim Modal */}
+      {selectedClaim && (
+        <Modal
+          isOpen={isEditOpen}
+          onClose={() => setIsEditOpen(false)}
+          title="Edit Claim Details & Status"
+          subtitle="Update assertion text, verification stance, and confidence"
+          maxWidth="md"
+        >
+          <form onSubmit={handleUpdateClaim} className="space-y-4">
+            <div>
+              <label className="block text-xs font-medium text-slate-300 mb-1">Claim Text</label>
+              <textarea
+                rows={3}
+                required
+                value={editForm.claim_text || ""}
+                onChange={(e) => setEditForm({ ...editForm, claim_text: e.target.value })}
+                className="w-full px-3 py-2 bg-slate-950 border border-slate-800 rounded-lg text-xs text-slate-100 focus:outline-none focus:border-sky-500 leading-relaxed"
+              />
+            </div>
+
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <label className="block text-xs font-medium text-slate-300 mb-1">Verification Status</label>
+                <select
+                  value={editForm.verification_status || selectedClaim.verification_status}
+                  onChange={(e) =>
+                    setEditForm({ ...editForm, verification_status: e.target.value as VerificationStatus })
+                  }
+                  className="w-full px-3 py-2 bg-slate-950 border border-slate-800 rounded-lg text-xs text-slate-200 focus:outline-none focus:border-sky-500"
+                >
+                  <option value="unverified">Unverified</option>
+                  <option value="disputed">Disputed</option>
+                  <option value="verified">Verified</option>
+                  <option value="debunked">Debunked</option>
+                </select>
+              </div>
+
+              <div>
+                <label className="block text-xs font-medium text-slate-300 mb-1">Lifecycle Status</label>
+                <select
+                  value={editForm.lifecycle_status || selectedClaim.lifecycle_status}
+                  onChange={(e) =>
+                    setEditForm({ ...editForm, lifecycle_status: e.target.value as LifecycleStatus })
+                  }
+                  className="w-full px-3 py-2 bg-slate-950 border border-slate-800 rounded-lg text-xs text-slate-200 focus:outline-none focus:border-sky-500"
+                >
+                  <option value="draft">Draft</option>
+                  <option value="active">Active</option>
+                  <option value="archived">Archived</option>
+                </select>
+              </div>
+            </div>
+
+            <div>
+              <label className="block text-xs font-medium text-slate-300 mb-1">Confidence Score (0.0 - 1.0)</label>
+              <input
+                type="number"
+                step="0.05"
+                min="0"
+                max="1"
+                value={editForm.confidence ?? selectedClaim.confidence ?? 0.5}
+                onChange={(e) =>
+                  setEditForm({ ...editForm, confidence: Number(e.target.value) })
+                }
+                className="w-full px-3 py-2 bg-slate-950 border border-slate-800 rounded-lg text-xs text-slate-100 font-mono"
+              />
+            </div>
+
+            <div className="flex justify-end gap-2 pt-2">
+              <button
+                type="button"
+                onClick={() => setIsEditOpen(false)}
+                className="px-4 py-2 bg-slate-800 hover:bg-slate-700 text-xs font-medium text-slate-200 rounded-lg"
+              >
+                Cancel
+              </button>
+              <button
+                type="submit"
+                disabled={isUpdating}
+                className="px-4 py-2 bg-sky-600 hover:bg-sky-500 text-white text-xs font-semibold rounded-lg transition"
+              >
+                {isUpdating ? "Saving..." : "Save Changes"}
+              </button>
+            </div>
+          </form>
+        </Modal>
+      )}
 
       {/* Add Evidence Modal */}
       <Modal

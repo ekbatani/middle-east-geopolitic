@@ -136,6 +136,69 @@ async def get_scenario(
     return ScenarioOut.model_validate(scenario)
 
 
+class UpdateScenarioRequest(BaseModel):
+    name: str | None = None
+    scenario_family: ScenarioFamily | None = None
+    time_horizon: str | None = None
+    description: str | None = None
+    status: ScenarioStatus | None = None
+
+
+@router.patch("/{scenario_id}", response_model=ScenarioOut)
+async def update_scenario_details(
+    scenario_id: UUID,
+    payload: UpdateScenarioRequest,
+    session: SessionDep,
+    principal: ManagePrincipal,
+) -> ScenarioOut:
+    repo = ScenarioRepository(session)
+    scenario = await repo.get(scenario_id)
+    if scenario is None:
+        raise NotFoundError(f"Scenario {scenario_id} not found")
+
+    updated = await repo.update(
+        scenario,
+        name=payload.name,
+        scenario_family=payload.scenario_family,
+        time_horizon=payload.time_horizon,
+        description=payload.description,
+        status=payload.status,
+    )
+    await audit(
+        session,
+        principal,
+        "scenario.details_updated",
+        resource_type="scenario",
+        resource_id=str(scenario_id),
+        metadata=payload.model_dump(exclude_unset=True),
+    )
+    await session.commit()
+    return ScenarioOut.model_validate(updated)
+
+
+@router.delete("/{scenario_id}", status_code=204)
+async def delete_scenario(
+    scenario_id: UUID,
+    session: SessionDep,
+    principal: ManagePrincipal,
+) -> None:
+    repo = ScenarioRepository(session)
+    scenario = await repo.get(scenario_id)
+    if scenario is None:
+        raise NotFoundError(f"Scenario {scenario_id} not found")
+
+    await repo.delete(scenario)
+    await audit(
+        session,
+        principal,
+        "scenario.deleted",
+        resource_type="scenario",
+        resource_id=str(scenario_id),
+    )
+    await session.commit()
+
+
+
 @router.get("/{scenario_id}/history", response_model=list[ScenarioAssessmentOut])
 async def get_scenario_history(
     scenario_id: UUID,

@@ -6,6 +6,7 @@ import {
   IssueForecastRequest,
   PaginationParams,
   ResolveForecastRequest,
+  UpdateForecastRequest,
   UUID,
 } from "../types";
 
@@ -30,6 +31,14 @@ export const forecastsService = {
 
   async issueForecast(payload: IssueForecastRequest): Promise<Forecast> {
     return apiClient.post<Forecast>("/api/v1/forecasts", payload);
+  },
+
+  async updateForecast(forecastId: UUID, payload: UpdateForecastRequest): Promise<Forecast> {
+    return apiClient.patch<Forecast>(`/api/v1/forecasts/${forecastId}`, payload);
+  },
+
+  async deleteForecast(forecastId: UUID): Promise<void> {
+    return apiClient.delete<void>(`/api/v1/forecasts/${forecastId}`);
   },
 
   async resolveForecast(forecastId: UUID, payload: ResolveForecastRequest): Promise<Forecast> {

@@ -4,8 +4,10 @@ import React, { useState, useEffect } from "react";
 import {
   Scenario,
   ScenarioFamily,
+  ScenarioStatus,
   ScenarioUpdateRecommendation,
   CreateScenarioRequest,
+  UpdateScenarioRequest,
   ScenarioSimulationRequest,
 } from "../../types";
 import { scenariosService } from "../../services";
@@ -14,11 +16,9 @@ import {
   SparklesIcon,
   PlusIcon,
   ActivityIcon,
-  RefreshCwIcon,
-  ShieldIcon,
-  CheckCircleIcon,
+  Trash2Icon,
 } from "../common/Icons";
-import { Card, CardHeader } from "../common/Card";
+import { Card } from "../common/Card";
 import { Badge } from "../common/Badge";
 import { LoadingState, ErrorState } from "../common/LoadingState";
 import { Modal } from "../common/Modal";
@@ -49,6 +49,11 @@ export function ScenariosView() {
     description: "",
   });
   const [isCreating, setIsCreating] = useState(false);
+
+  // Edit Scenario State
+  const [editingScenario, setEditingScenario] = useState<Scenario | null>(null);
+  const [editForm, setEditForm] = useState<UpdateScenarioRequest>({});
+  const [isUpdating, setIsUpdating] = useState(false);
 
   const fetchScenarios = async () => {
     setIsLoading(true);
@@ -107,6 +112,32 @@ export function ScenariosView() {
     }
   };
 
+  const handleUpdateScenario = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!editingScenario) return;
+
+    setIsUpdating(true);
+    try {
+      await scenariosService.updateScenarioDetails(editingScenario.id, editForm);
+      setEditingScenario(null);
+      fetchScenarios();
+    } catch (err) {
+      console.error("Update scenario error:", err);
+    } finally {
+      setIsUpdating(false);
+    }
+  };
+
+  const handleDeleteScenario = async (scenarioId: string) => {
+    if (!confirm("Are you sure you want to delete this scenario branch?")) return;
+    try {
+      await scenariosService.deleteScenario(scenarioId);
+      fetchScenarios();
+    } catch (err) {
+      console.error("Delete scenario error:", err);
+    }
+  };
+
   if (isLoading) {
     return <LoadingState message="Loading scenario register and probabilistic bounds..." />;
   }
@@ -160,9 +191,32 @@ export function ScenariosView() {
                 <Badge variant="info" size="sm">
                   {scenario.scenario_family.replace("_", " ")}
                 </Badge>
-                <Badge variant="neutral" size="sm">
-                  {scenario.status}
-                </Badge>
+                <div className="flex items-center gap-1.5">
+                  <Badge variant="neutral" size="sm">
+                    {scenario.status}
+                  </Badge>
+                  <button
+                    onClick={() => {
+                      setEditingScenario(scenario);
+                      setEditForm({
+                        name: scenario.name,
+                        scenario_family: scenario.scenario_family,
+                        time_horizon: scenario.time_horizon,
+                        description: scenario.description,
+                        status: scenario.status,
+                      });
+                    }}
+                    className="text-[10px] text-slate-400 hover:text-sky-400 font-mono"
+                  >
+                    Edit
+                  </button>
+                  <button
+                    onClick={() => handleDeleteScenario(scenario.id)}
+                    className="text-[10px] text-slate-500 hover:text-rose-400 font-mono"
+                  >
+                    <Trash2Icon className="w-3.5 h-3.5" />
+                  </button>
+                </div>
               </div>
 
               <h3 className="text-sm font-bold text-slate-100 mb-1">{scenario.name}</h3>
@@ -424,6 +478,103 @@ export function ScenariosView() {
           </div>
         </form>
       </Modal>
+
+      {/* Edit Scenario Modal */}
+      {editingScenario && (
+        <Modal
+          isOpen={!!editingScenario}
+          onClose={() => setEditingScenario(null)}
+          title={`Edit Scenario: ${editingScenario.name}`}
+          subtitle="Modify scenario parameters, family classification, and status"
+          maxWidth="md"
+        >
+          <form onSubmit={handleUpdateScenario} className="space-y-4">
+            <div>
+              <label className="block text-xs font-medium text-slate-300 mb-1">Scenario Title</label>
+              <input
+                type="text"
+                required
+                value={editForm.name || ""}
+                onChange={(e) => setEditForm({ ...editForm, name: e.target.value })}
+                className="w-full px-3 py-2 bg-slate-950 border border-slate-800 rounded-lg text-xs text-slate-100 focus:outline-none focus:border-sky-500"
+              />
+            </div>
+
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <label className="block text-xs font-medium text-slate-300 mb-1">Scenario Family</label>
+                <select
+                  value={editForm.scenario_family || editingScenario.scenario_family}
+                  onChange={(e) =>
+                    setEditForm({ ...editForm, scenario_family: e.target.value as ScenarioFamily })
+                  }
+                  className="w-full px-3 py-2 bg-slate-950 border border-slate-800 rounded-lg text-xs text-slate-200 focus:outline-none focus:border-sky-500"
+                >
+                  <option value="status_quo">Status Quo</option>
+                  <option value="rapid_escalation">Rapid Escalation</option>
+                  <option value="de_escalation">De-escalation</option>
+                  <option value="regime_crisis">Regime Crisis</option>
+                  <option value="proxy_shift">Proxy Shift</option>
+                  <option value="economic_collapse">Economic Collapse</option>
+                </select>
+              </div>
+
+              <div>
+                <label className="block text-xs font-medium text-slate-300 mb-1">Status</label>
+                <select
+                  value={editForm.status || editingScenario.status}
+                  onChange={(e) =>
+                    setEditForm({ ...editForm, status: e.target.value as ScenarioStatus })
+                  }
+                  className="w-full px-3 py-2 bg-slate-950 border border-slate-800 rounded-lg text-xs text-slate-200 focus:outline-none focus:border-sky-500"
+                >
+                  <option value="active">Active</option>
+                  <option value="dormant">Dormant</option>
+                  <option value="realized">Realized</option>
+                  <option value="invalidated">Invalidated</option>
+                </select>
+              </div>
+            </div>
+
+            <div>
+              <label className="block text-xs font-medium text-slate-300 mb-1">Time Horizon</label>
+              <input
+                type="text"
+                value={editForm.time_horizon || ""}
+                onChange={(e) => setEditForm({ ...editForm, time_horizon: e.target.value })}
+                className="w-full px-3 py-2 bg-slate-950 border border-slate-800 rounded-lg text-xs text-slate-100 font-mono"
+              />
+            </div>
+
+            <div>
+              <label className="block text-xs font-medium text-slate-300 mb-1">Description</label>
+              <textarea
+                rows={3}
+                value={editForm.description || ""}
+                onChange={(e) => setEditForm({ ...editForm, description: e.target.value })}
+                className="w-full px-3 py-2 bg-slate-950 border border-slate-800 rounded-lg text-xs text-slate-100 focus:outline-none focus:border-sky-500"
+              />
+            </div>
+
+            <div className="flex justify-end gap-2 pt-2">
+              <button
+                type="button"
+                onClick={() => setEditingScenario(null)}
+                className="px-4 py-2 bg-slate-800 hover:bg-slate-700 text-xs font-medium text-slate-200 rounded-lg"
+              >
+                Cancel
+              </button>
+              <button
+                type="submit"
+                disabled={isUpdating}
+                className="px-4 py-2 bg-sky-600 hover:bg-sky-500 text-white text-xs font-semibold rounded-lg transition"
+              >
+                {isUpdating ? "Saving..." : "Save Changes"}
+              </button>
+            </div>
+          </form>
+        </Modal>
+      )}
     </div>
   );
 }

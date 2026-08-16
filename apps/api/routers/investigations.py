@@ -61,6 +61,13 @@ class CreateInvestigationRequest(BaseModel):
     assigned_to: str | None = None
 
 
+class UpdateInvestigationRequest(BaseModel):
+    title: str | None = None
+    hypothesis: str | None = None
+    priority: str | None = None
+    status: str | None = None
+
+
 @router.post("", response_model=InvestigationOut, status_code=201)
 async def create_investigation(
     payload: CreateInvestigationRequest,
@@ -126,6 +133,59 @@ async def get_investigation(
             for s in steps
         ],
     )
+
+
+@router.patch("/{investigation_id}", response_model=InvestigationOut)
+async def update_investigation(
+    investigation_id: UUID,
+    payload: UpdateInvestigationRequest,
+    session: SessionDep,
+    principal: CreatePrincipal,
+) -> InvestigationOut:
+    repo = InvestigationRepository(session)
+    investigation = await repo.get(investigation_id)
+    if not investigation:
+        raise NotFoundError(f"Investigation {investigation_id} not found")
+
+    updated = await repo.update(
+        investigation,
+        title=payload.title,
+        hypothesis=payload.hypothesis,
+        priority=payload.priority,
+        status=payload.status,
+    )
+    await audit(
+        session,
+        principal,
+        "investigation.updated",
+        resource_type="investigation",
+        resource_id=str(investigation_id),
+        metadata=payload.model_dump(exclude_unset=True),
+    )
+    await session.commit()
+    return InvestigationOut.model_validate(updated)
+
+
+@router.delete("/{investigation_id}", status_code=204)
+async def delete_investigation(
+    investigation_id: UUID,
+    session: SessionDep,
+    principal: CreatePrincipal,
+) -> None:
+    repo = InvestigationRepository(session)
+    investigation = await repo.get(investigation_id)
+    if not investigation:
+        raise NotFoundError(f"Investigation {investigation_id} not found")
+
+    await repo.delete(investigation)
+    await audit(
+        session,
+        principal,
+        "investigation.deleted",
+        resource_type="investigation",
+        resource_id=str(investigation_id),
+    )
+    await session.commit()
 
 
 @router.get("", response_model=list[InvestigationOut])

@@ -68,6 +68,14 @@ class CreateActorRequest(BaseModel):
     description: str | None = None
 
 
+class UpdateActorRequest(BaseModel):
+    canonical_name: str | None = None
+    actor_type: ActorType | None = None
+    native_name: str | None = None
+    description: str | None = None
+    status: ActorStatus | None = None
+
+
 class CreateActorAliasRequest(BaseModel):
     alias: str = Field(min_length=1, max_length=300)
     language: str | None = None
@@ -97,6 +105,61 @@ async def get_actor(actor_id: UUID, session: SessionDep, _principal: ReadPrincip
     return ActorOut.model_validate(actor)
 
 
+@router.patch("/{actor_id}", response_model=ActorOut)
+async def update_actor(
+    actor_id: UUID,
+    payload: UpdateActorRequest,
+    session: SessionDep,
+    principal: AdminPrincipal,
+) -> ActorOut:
+    repo = ActorRepository(session)
+    actor = await repo.get(actor_id)
+    if actor is None:
+        raise NotFoundError(f"Actor {actor_id} not found")
+
+    updated = await repo.update(
+        actor,
+        canonical_name=payload.canonical_name,
+        actor_type=payload.actor_type,
+        native_name=payload.native_name,
+        description=payload.description,
+        status=payload.status,
+    )
+    await audit(
+        session,
+        principal,
+        "actor.updated",
+        resource_type="actor",
+        resource_id=str(actor_id),
+        metadata=payload.model_dump(exclude_unset=True),
+    )
+    await session.commit()
+    refreshed = await repo.get(actor_id)
+    return ActorOut.model_validate(refreshed)
+
+
+@router.delete("/{actor_id}", status_code=204)
+async def delete_actor(
+    actor_id: UUID,
+    session: SessionDep,
+    principal: AdminPrincipal,
+) -> None:
+    repo = ActorRepository(session)
+    actor = await repo.get(actor_id)
+    if actor is None:
+        raise NotFoundError(f"Actor {actor_id} not found")
+
+    await repo.delete(actor)
+    await audit(
+        session,
+        principal,
+        "actor.deleted",
+        resource_type="actor",
+        resource_id=str(actor_id),
+    )
+    await session.commit()
+
+
 @router.get("/{actor_id}/timeline", response_model=ActorTimelineResponse)
 async def get_actor_timeline(
     actor_id: UUID, session: SessionDep, _principal: ReadPrincipal
@@ -119,6 +182,7 @@ async def create_actor(
     await audit(
         session, principal, "actor.created", resource_type="actor", resource_id=str(actor.id)
     )
+    await session.commit()
     return ActorOut.model_validate(actor)
 
 
@@ -137,4 +201,26 @@ async def create_actor_alias(
     await audit(
         session, principal, "actor.alias_added", resource_type="actor", resource_id=str(actor_id)
     )
+    await session.commit()
     return ActorAliasOut.model_validate(alias)
+
+
+@router.delete("/{actor_id}/aliases/{alias_id}", status_code=204)
+async def delete_actor_alias(
+    actor_id: UUID,
+    alias_id: UUID,
+    session: SessionDep,
+    principal: AdminPrincipal,
+) -> None:
+    repo = ActorRepository(session)
+    if await repo.get(actor_id) is None:
+        raise NotFoundError(f"Actor {actor_id} not found")
+
+    deleted = await repo.delete_alias(alias_id)
+    if not deleted:
+        raise NotFoundError(f"Alias {alias_id} not found")
+
+    await audit(
+        session, principal, "actor.alias_deleted", resource_type="actor_alias", resource_id=str(alias_id)
+    )
+    await session.commit()

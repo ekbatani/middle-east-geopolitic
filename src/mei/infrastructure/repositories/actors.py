@@ -139,5 +139,41 @@ class ActorRepository:
         )
         return list(result.scalars())
 
+    async def update(
+        self,
+        actor: Actor,
+        *,
+        canonical_name: str | None = None,
+        actor_type: ActorType | None = None,
+        native_name: str | None = None,
+        description: str | None = None,
+        status: ActorStatus | None = None,
+    ) -> Actor:
+        if canonical_name is not None:
+            actor.canonical_name = canonical_name
+        if actor_type is not None:
+            actor.actor_type = actor_type
+        if native_name is not None:
+            actor.native_name = native_name
+        if description is not None:
+            actor.description = description
+        if status is not None:
+            actor.status = status
+        await self._session.flush()
+        return actor
+
+    async def delete(self, actor: Actor) -> None:
+        await self._session.delete(actor)
+        await self._session.flush()
+
+    async def delete_alias(self, alias_id: UUID) -> bool:
+        alias = await self._session.get(ActorAlias, alias_id)
+        if alias is not None:
+            await self._session.delete(alias)
+            await self._session.flush()
+            return True
+        return False
+
 
 __all__ = ["ActorRepository"]
+

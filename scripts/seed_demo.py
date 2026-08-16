@@ -75,7 +75,8 @@ from mei.shared.enums import (
 from mei.shared.ids import uuid7
 from mei.shared.logging import configure_logging, get_logger
 from mei.shared.time import utcnow
-from scripts.seed import _seed_actors, _seed_risk_indicators, _seed_sources
+from scripts.seed import _seed_actors, _seed_risk_indicators, _seed_schedules, _seed_sources
+
 
 configure_logging(json_output=False)
 logger = get_logger(__name__)
@@ -1009,6 +1010,8 @@ async def main_async() -> None:
         await _seed_actors(session)
         await _seed_sources(session)
         await _seed_risk_indicators(session)
+        await _seed_schedules(session)
+
 
         # 2. Identity & Admin Key
         identity = IdentityService(session, settings)

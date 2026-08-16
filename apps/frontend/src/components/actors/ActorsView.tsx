@@ -5,8 +5,10 @@ import {
   Actor,
   ActorTimelineResponse,
   ActorType,
+  ActorStatus,
   CreateActorRequest,
   CreateActorAliasRequest,
+  UpdateActorRequest,
 } from "../../types";
 import { actorsService } from "../../services";
 import {
@@ -14,8 +16,8 @@ import {
   PlusIcon,
   SearchIcon,
   RefreshCwIcon,
-  GlobeIcon,
   UserIcon,
+  Trash2Icon,
 } from "../common/Icons";
 import { Card, CardHeader } from "../common/Card";
 import { Badge } from "../common/Badge";
@@ -43,6 +45,11 @@ export function ActorsView() {
     description: "",
   });
   const [isCreating, setIsCreating] = useState(false);
+
+  // Edit Actor Modal
+  const [isEditOpen, setIsEditOpen] = useState(false);
+  const [editForm, setEditForm] = useState<UpdateActorRequest>({});
+  const [isUpdating, setIsUpdating] = useState(false);
 
   // Add Alias Modal
   const [isAliasOpen, setIsAliasOpen] = useState(false);
@@ -106,6 +113,37 @@ export function ActorsView() {
     }
   };
 
+  const handleUpdateActor = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!selectedActor) return;
+    setIsUpdating(true);
+    try {
+      const updated = await actorsService.updateActor(selectedActor.id, editForm);
+      setIsEditOpen(false);
+      setSelectedActor(updated);
+      fetchActors();
+    } catch (err) {
+      console.error("Update actor error:", err);
+    } finally {
+      setIsUpdating(false);
+    }
+  };
+
+  const handleDeleteActor = async (actorId: string) => {
+    if (!confirm("Are you sure you want to remove this actor entity? All associated relationships and aliases will be affected.")) {
+      return;
+    }
+    try {
+      await actorsService.deleteActor(actorId);
+      if (selectedActor?.id === actorId) {
+        setSelectedActor(null);
+      }
+      fetchActors();
+    } catch (err) {
+      console.error("Delete actor error:", err);
+    }
+  };
+
   const handleAddAlias = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!selectedActor || !aliasForm.alias.trim()) return;
@@ -122,6 +160,18 @@ export function ActorsView() {
       console.error("Add alias error:", err);
     } finally {
       setIsAddingAlias(false);
+    }
+  };
+
+  const handleDeleteAlias = async (aliasId: string) => {
+    if (!selectedActor) return;
+    try {
+      await actorsService.deleteActorAlias(selectedActor.id, aliasId);
+      const updated = await actorsService.getActor(selectedActor.id);
+      setSelectedActor(updated);
+      fetchActors();
+    } catch (err) {
+      console.error("Delete alias error:", err);
     }
   };
 
@@ -211,9 +261,11 @@ export function ActorsView() {
                   <Badge variant="info" size="sm">
                     {act.actor_type.replace("_", " ")}
                   </Badge>
-                  <Badge variant={act.status === "active" ? "success" : "neutral"} size="sm">
-                    {act.status}
-                  </Badge>
+                  <div className="flex items-center gap-1.5">
+                    <Badge variant={act.status === "active" ? "success" : "neutral"} size="sm">
+                      {act.status}
+                    </Badge>
+                  </div>
                 </div>
 
                 <div>
@@ -265,12 +317,38 @@ export function ActorsView() {
                       </Badge>
                     </div>
 
-                    <button
-                      onClick={() => setIsAliasOpen(true)}
-                      className="px-2.5 py-1 bg-slate-800 hover:bg-slate-700 text-xs text-slate-300 font-medium rounded-lg border border-slate-700 transition"
-                    >
-                      + Add Alias
-                    </button>
+                    <div className="flex items-center gap-2">
+                      <button
+                        onClick={() => {
+                          setEditForm({
+                            canonical_name: selectedActor.canonical_name,
+                            native_name: selectedActor.native_name,
+                            actor_type: selectedActor.actor_type,
+                            description: selectedActor.description,
+                            status: selectedActor.status,
+                          });
+                          setIsEditOpen(true);
+                        }}
+                        className="px-2.5 py-1 bg-slate-800 hover:bg-slate-700 text-xs text-slate-300 font-medium rounded-lg border border-slate-700 transition"
+                      >
+                        Edit Profile
+                      </button>
+
+                      <button
+                        onClick={() => setIsAliasOpen(true)}
+                        className="px-2.5 py-1 bg-slate-800 hover:bg-slate-700 text-xs text-slate-300 font-medium rounded-lg border border-slate-700 transition"
+                      >
+                        + Add Alias
+                      </button>
+
+                      <button
+                        onClick={() => handleDeleteActor(selectedActor.id)}
+                        className="p-1 bg-rose-950/40 hover:bg-rose-900 border border-rose-800 text-rose-300 rounded-lg transition"
+                        title="Delete Actor"
+                      >
+                        <Trash2Icon className="w-3.5 h-3.5" />
+                      </button>
+                    </div>
                   </div>
 
                   <div>
@@ -307,6 +385,13 @@ export function ActorsView() {
                               ({al.language})
                             </span>
                           )}
+                          <button
+                            onClick={() => handleDeleteAlias(al.id)}
+                            className="text-slate-500 hover:text-rose-400 ml-1"
+                            title="Remove alias"
+                          >
+                            &times;
+                          </button>
                         </div>
                       ))}
                     </div>
@@ -441,6 +526,107 @@ export function ActorsView() {
           </div>
         </form>
       </Modal>
+
+      {/* Edit Actor Modal */}
+      {selectedActor && (
+        <Modal
+          isOpen={isEditOpen}
+          onClose={() => setIsEditOpen(false)}
+          title={`Edit Actor: ${selectedActor.canonical_name}`}
+          subtitle="Modify entity parameters, classification, and status"
+          maxWidth="md"
+        >
+          <form onSubmit={handleUpdateActor} className="space-y-4">
+            <div>
+              <label className="block text-xs font-medium text-slate-300 mb-1">
+                Canonical Name
+              </label>
+              <input
+                type="text"
+                required
+                value={editForm.canonical_name || ""}
+                onChange={(e) => setEditForm({ ...editForm, canonical_name: e.target.value })}
+                className="w-full px-3 py-2 bg-slate-950 border border-slate-800 rounded-lg text-xs text-slate-100 focus:outline-none focus:border-sky-500"
+              />
+            </div>
+
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <label className="block text-xs font-medium text-slate-300 mb-1">Actor Type</label>
+                <select
+                  value={editForm.actor_type || selectedActor.actor_type}
+                  onChange={(e) =>
+                    setEditForm({ ...editForm, actor_type: e.target.value as ActorType })
+                  }
+                  className="w-full px-3 py-2 bg-slate-950 border border-slate-800 rounded-lg text-xs text-slate-200 focus:outline-none focus:border-sky-500"
+                >
+                  <option value="country">Country</option>
+                  <option value="state_leader">State Leader</option>
+                  <option value="armed_non_state">Armed Non-State / Proxy</option>
+                  <option value="political_party">Political Party</option>
+                  <option value="organization">Organization</option>
+                  <option value="coalition">Coalition</option>
+                </select>
+              </div>
+
+              <div>
+                <label className="block text-xs font-medium text-slate-300 mb-1">Status</label>
+                <select
+                  value={editForm.status || selectedActor.status}
+                  onChange={(e) =>
+                    setEditForm({ ...editForm, status: e.target.value as ActorStatus })
+                  }
+                  className="w-full px-3 py-2 bg-slate-950 border border-slate-800 rounded-lg text-xs text-slate-200 focus:outline-none focus:border-sky-500"
+                >
+                  <option value="active">Active</option>
+                  <option value="inactive">Inactive</option>
+                  <option value="dissolved">Dissolved</option>
+                  <option value="deceased">Deceased</option>
+                </select>
+              </div>
+            </div>
+
+            <div>
+              <label className="block text-xs font-medium text-slate-300 mb-1">
+                Native Name
+              </label>
+              <input
+                type="text"
+                value={editForm.native_name || ""}
+                onChange={(e) => setEditForm({ ...editForm, native_name: e.target.value })}
+                className="w-full px-3 py-2 bg-slate-950 border border-slate-800 rounded-lg text-xs text-slate-100"
+              />
+            </div>
+
+            <div>
+              <label className="block text-xs font-medium text-slate-300 mb-1">Description</label>
+              <textarea
+                rows={3}
+                value={editForm.description || ""}
+                onChange={(e) => setEditForm({ ...editForm, description: e.target.value })}
+                className="w-full px-3 py-2 bg-slate-950 border border-slate-800 rounded-lg text-xs text-slate-100 focus:outline-none focus:border-sky-500"
+              />
+            </div>
+
+            <div className="flex justify-end gap-2 pt-2">
+              <button
+                type="button"
+                onClick={() => setIsEditOpen(false)}
+                className="px-4 py-2 bg-slate-800 hover:bg-slate-700 text-xs font-medium text-slate-200 rounded-lg"
+              >
+                Cancel
+              </button>
+              <button
+                type="submit"
+                disabled={isUpdating}
+                className="px-4 py-2 bg-sky-600 hover:bg-sky-500 text-white text-xs font-semibold rounded-lg transition"
+              >
+                {isUpdating ? "Saving..." : "Save Changes"}
+              </button>
+            </div>
+          </form>
+        </Modal>
+      )}
 
       {/* Add Alias Modal */}
       <Modal

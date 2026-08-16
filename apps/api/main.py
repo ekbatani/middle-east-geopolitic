@@ -1,3 +1,5 @@
+from collections.abc import AsyncIterator
+from contextlib import asynccontextmanager
 from pathlib import Path
 
 from fastapi import APIRouter, FastAPI, Request
@@ -27,8 +29,10 @@ from apps.api.routers import (
     review,
     risks,
     scenarios,
+    schedules,
     sources,
 )
+from mei.application.services.scheduler import SchedulerService
 from mei.shared.config import get_settings
 from mei.shared.errors import MeiError
 from mei.shared.logging import configure_logging
@@ -37,10 +41,21 @@ settings = get_settings()
 configure_logging(json_output=settings.app_env != "development")
 
 
+@asynccontextmanager
+async def lifespan(app: FastAPI) -> AsyncIterator[None]:
+    scheduler = SchedulerService.get_instance()
+    await scheduler.start()
+    try:
+        yield
+    finally:
+        await scheduler.stop()
+
+
 def create_app() -> FastAPI:
     app = FastAPI(
         title="Middle East Geopolitical Intelligence Platform API",
         version="0.1.0",
+        lifespan=lifespan,
     )
 
     app.add_middleware(
@@ -71,9 +86,9 @@ def create_app() -> FastAPI:
     app.include_router(health.router)
     # Minimal, build-step-free human-facing pages (geospatial map,
     # calibration dashboard) — design doc section 35, Phase 6.
-    app.mount(
-        "/static", StaticFiles(directory=Path(__file__).resolve().parent / "static"), name="static"
-    )
+    static_dir = Path(__file__).resolve().parent / "static"
+    if static_dir.exists():
+        app.mount("/static", StaticFiles(directory=static_dir), name="static")
 
     api_v1 = APIRouter(prefix="/api/v1")
     api_v1.include_router(auth.router)
@@ -96,6 +111,7 @@ def create_app() -> FastAPI:
     api_v1.include_router(analyst_assessments.router)
     api_v1.include_router(model_reviews.router)
     api_v1.include_router(imagery.router)
+    api_v1.include_router(schedules.router)
     app.include_router(api_v1)
 
     return app

@@ -197,3 +197,64 @@ async def link_image_to_bundle(
         metadata={"bundle_id": str(payload.bundle_id)},
     )
     return {"bundle_id": str(item.bundle_id), "image_evidence_id": str(item.image_evidence_id)}
+
+
+class UpdateImageRequest(BaseModel):
+    caption: str | None = None
+    latitude: float | None = None
+    longitude: float | None = None
+    verification_status: VerificationStatus | None = None
+
+
+@router.patch("/{image_id}", response_model=ImageEvidenceOut)
+async def update_image(
+    image_id: UUID,
+    payload: UpdateImageRequest,
+    session: SessionDep,
+    principal: SubmitPrincipal,
+) -> ImageEvidenceOut:
+    repo = ImageryRepository(session)
+    image = await repo.get(image_id)
+    if image is None:
+        raise NotFoundError(f"Image {image_id} not found")
+
+    updated = await repo.update(
+        image,
+        caption=payload.caption,
+        latitude=payload.latitude,
+        longitude=payload.longitude,
+        verification_status=payload.verification_status,
+    )
+    await audit(
+        session,
+        principal,
+        "imagery.updated",
+        resource_type="image_evidence",
+        resource_id=str(image_id),
+        metadata=payload.model_dump(exclude_unset=True),
+    )
+    await session.commit()
+    return ImageEvidenceOut.from_domain(updated)
+
+
+@router.delete("/{image_id}", status_code=204)
+async def delete_image(
+    image_id: UUID,
+    session: SessionDep,
+    principal: SubmitPrincipal,
+) -> None:
+    repo = ImageryRepository(session)
+    image = await repo.get(image_id)
+    if image is None:
+        raise NotFoundError(f"Image {image_id} not found")
+
+    await repo.delete(image)
+    await audit(
+        session,
+        principal,
+        "imagery.deleted",
+        resource_type="image_evidence",
+        resource_id=str(image_id),
+    )
+    await session.commit()
+

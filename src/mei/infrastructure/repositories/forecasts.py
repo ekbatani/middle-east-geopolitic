@@ -87,5 +87,33 @@ class ForecastRepository:
         await self._session.flush()
         return forecast
 
+    async def update(
+        self,
+        forecast: ForecastRecord,
+        *,
+        question: str | None = None,
+        probability: float | None = None,
+        confidence: float | None = None,
+        resolution_date: date | None = None,
+        status: ForecastStatus | None = None,
+    ) -> ForecastRecord:
+        if question is not None:
+            forecast.question = question
+        if probability is not None:
+            forecast.probability = probability
+        if confidence is not None:
+            forecast.confidence = confidence
+        if resolution_date is not None:
+            forecast.resolution_date = resolution_date
+        if status is not None:
+            forecast.status = status
+        await self._session.flush()
+        return forecast
+
+    async def delete(self, forecast: ForecastRecord) -> None:
+        await self._session.delete(forecast)
+        await self._session.flush()
+
 
 __all__ = ["ForecastRepository"]
+

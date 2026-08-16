@@ -29,3 +29,11 @@ export type LinkImageToBundleRequest = {
   bundle_id: UUID;
   weight?: number;
 };
+
+export type UpdateImageRequest = {
+  caption?: string | null;
+  latitude?: number | null;
+  longitude?: number | null;
+  verification_status?: VerificationStatus;
+};
+

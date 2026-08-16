@@ -3,8 +3,10 @@
 import React, { useState, useEffect } from "react";
 import {
   Forecast,
+  ForecastStatus,
   CalibrationReport,
   IssueForecastRequest,
+  UpdateForecastRequest,
   ResolveForecastRequest,
   ForecastOutcome,
 } from "../../types";
@@ -12,10 +14,8 @@ import { forecastsService } from "../../services";
 import {
   TargetIcon,
   PlusIcon,
-  ActivityIcon,
   RefreshCwIcon,
-  CheckCircleIcon,
-  BarChart3Icon,
+  Trash2Icon,
 } from "../common/Icons";
 import { Card, CardHeader } from "../common/Card";
 import { Badge } from "../common/Badge";
@@ -38,6 +38,11 @@ export function ForecastsView() {
     assumptions: [""],
   });
   const [isIssuing, setIsIssuing] = useState(false);
+
+  // Edit Forecast Modal
+  const [editingForecast, setEditingForecast] = useState<Forecast | null>(null);
+  const [editForm, setEditForm] = useState<UpdateForecastRequest>({});
+  const [isUpdating, setIsUpdating] = useState(false);
 
   // Resolve Forecast Modal
   const [resolvingForecast, setResolvingForecast] = useState<Forecast | null>(null);
@@ -90,6 +95,32 @@ export function ForecastsView() {
       console.error("Issue forecast error:", err);
     } finally {
       setIsIssuing(false);
+    }
+  };
+
+  const handleUpdateForecast = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!editingForecast) return;
+
+    setIsUpdating(true);
+    try {
+      await forecastsService.updateForecast(editingForecast.id, editForm);
+      setEditingForecast(null);
+      fetchForecastsData();
+    } catch (err) {
+      console.error("Update forecast error:", err);
+    } finally {
+      setIsUpdating(false);
+    }
+  };
+
+  const handleDeleteForecast = async (forecastId: string) => {
+    if (!confirm("Are you sure you want to delete this forecast record?")) return;
+    try {
+      await forecastsService.deleteForecast(forecastId);
+      fetchForecastsData();
+    } catch (err) {
+      console.error("Delete forecast error:", err);
     }
   };
 
@@ -251,6 +282,28 @@ export function ForecastsView() {
                         Brier: {f.brier_score.toFixed(3)}
                       </span>
                     )}
+                    <button
+                      onClick={() => {
+                        setEditingForecast(f);
+                        setEditForm({
+                          question: f.question,
+                          probability: f.probability,
+                          confidence: f.confidence,
+                          resolution_date: f.resolution_date,
+                          status: f.status,
+                        });
+                      }}
+                      className="text-slate-400 hover:text-sky-400 font-mono text-xs"
+                    >
+                      Edit
+                    </button>
+                    <button
+                      onClick={() => handleDeleteForecast(f.id)}
+                      className="text-slate-500 hover:text-rose-400 p-1"
+                      title="Delete forecast"
+                    >
+                      <Trash2Icon className="w-3.5 h-3.5" />
+                    </button>
                   </div>
                 </div>
 
@@ -415,6 +468,109 @@ export function ForecastsView() {
           </div>
         </form>
       </Modal>
+
+      {/* Edit Forecast Modal */}
+      {editingForecast && (
+        <Modal
+          isOpen={!!editingForecast}
+          onClose={() => setEditingForecast(null)}
+          title="Edit Forecast Record"
+          subtitle="Modify prediction parameters, resolution date, and status"
+          maxWidth="md"
+        >
+          <form onSubmit={handleUpdateForecast} className="space-y-4">
+            <div>
+              <label className="block text-xs font-medium text-slate-300 mb-1">
+                Falsifiable Question
+              </label>
+              <input
+                type="text"
+                required
+                value={editForm.question || ""}
+                onChange={(e) => setEditForm({ ...editForm, question: e.target.value })}
+                className="w-full px-3 py-2 bg-slate-950 border border-slate-800 rounded-lg text-xs text-slate-100 focus:outline-none focus:border-sky-500"
+              />
+            </div>
+
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <label className="block text-xs font-medium text-slate-300 mb-1">
+                  Probability ({editForm.probability ?? editingForecast.probability}%)
+                </label>
+                <input
+                  type="range"
+                  min="0"
+                  max="100"
+                  value={editForm.probability ?? editingForecast.probability}
+                  onChange={(e) => setEditForm({ ...editForm, probability: Number(e.target.value) })}
+                  className="w-full mt-2"
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs font-medium text-slate-300 mb-1">
+                  Confidence
+                </label>
+                <input
+                  type="number"
+                  step="0.05"
+                  min="0"
+                  max="1"
+                  value={editForm.confidence ?? editingForecast.confidence}
+                  onChange={(e) => setEditForm({ ...editForm, confidence: Number(e.target.value) })}
+                  className="w-full px-3 py-2 bg-slate-950 border border-slate-800 rounded-lg text-xs text-slate-100 font-mono"
+                />
+              </div>
+            </div>
+
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <label className="block text-xs font-medium text-slate-300 mb-1">
+                  Resolution Date
+                </label>
+                <input
+                  type="date"
+                  value={editForm.resolution_date || editingForecast.resolution_date}
+                  onChange={(e) => setEditForm({ ...editForm, resolution_date: e.target.value })}
+                  className="w-full px-3 py-2 bg-slate-950 border border-slate-800 rounded-lg text-xs text-slate-100 font-mono"
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs font-medium text-slate-300 mb-1">
+                  Status
+                </label>
+                <select
+                  value={editForm.status || editingForecast.status}
+                  onChange={(e) => setEditForm({ ...editForm, status: e.target.value as ForecastStatus })}
+                  className="w-full px-3 py-2 bg-slate-950 border border-slate-800 rounded-lg text-xs text-slate-200 focus:outline-none focus:border-sky-500"
+                >
+                  <option value="active">Active</option>
+                  <option value="resolved">Resolved</option>
+                  <option value="cancelled">Cancelled</option>
+                </select>
+              </div>
+            </div>
+
+            <div className="flex justify-end gap-2 pt-2">
+              <button
+                type="button"
+                onClick={() => setEditingForecast(null)}
+                className="px-4 py-2 bg-slate-800 hover:bg-slate-700 text-xs font-medium text-slate-200 rounded-lg"
+              >
+                Cancel
+              </button>
+              <button
+                type="submit"
+                disabled={isUpdating}
+                className="px-4 py-2 bg-sky-600 hover:bg-sky-500 text-white text-xs font-semibold rounded-lg transition"
+              >
+                {isUpdating ? "Saving..." : "Save Changes"}
+              </button>
+            </div>
+          </form>
+        </Modal>
+      )}
 
       {/* Resolve Forecast Modal */}
       {resolvingForecast && (

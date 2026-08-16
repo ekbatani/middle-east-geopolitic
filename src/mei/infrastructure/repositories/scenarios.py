@@ -171,5 +171,33 @@ class ScenarioRepository:
         await self._session.flush()
         return assessment
 
+    async def update(
+        self,
+        scenario: Scenario,
+        *,
+        name: str | None = None,
+        scenario_family: ScenarioFamily | None = None,
+        time_horizon: str | None = None,
+        description: str | None = None,
+        status: ScenarioStatus | None = None,
+    ) -> Scenario:
+        if name is not None:
+            scenario.name = name
+        if scenario_family is not None:
+            scenario.scenario_family = scenario_family
+        if time_horizon is not None:
+            scenario.time_horizon = time_horizon
+        if description is not None:
+            scenario.description = description
+        if status is not None:
+            scenario.status = status
+        await self._session.flush()
+        return scenario
+
+    async def delete(self, scenario: Scenario) -> None:
+        await self._session.delete(scenario)
+        await self._session.flush()
+
 
 __all__ = ["ScenarioRepository"]
+
