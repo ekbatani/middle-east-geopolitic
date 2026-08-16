@@ -874,15 +874,25 @@ async def seed_investigations_and_monitors(
 
 
 async def seed_review_queue_and_imagery(
-    session: AsyncSession, doc_map: dict[str, Document]
+    session: AsyncSession,
+    doc_map: dict[str, Document],
+    claim_map: dict[str, Claim] | None = None,
+    actor_map: dict[str, Actor] | None = None,
 ) -> None:
     # Review Queue Items
     existing_reviews = await session.execute(select(ReviewItem).limit(1))
     if not existing_reviews.scalars().first():
+        doc = list(doc_map.values())[0] if doc_map else None
+        target_claim = list(claim_map.values())[0] if claim_map else None
+        iraq_actor = actor_map.get("Islamic Resistance in Iraq") if actor_map else None
+
         review_items_data = [
             {
                 "type": ReviewType.HIGH_IMPACT_EVENT,
-                "subject": {"event_title": "Unconfirmed Long-Range Cruise Missile Impact near Military Radar Site", "source": "OSINT Telegram Feed"},
+                "subject": {
+                    "event_title": "Unconfirmed Long-Range Cruise Missile Impact near Military Radar Site",
+                    "source": "OSINT Telegram Feed",
+                },
                 "candidates": [
                     {"label": "Direct Kinetic Strike on Active Radar Array", "confidence": 0.65},
                     {"label": "Air Defense Interception Debris Field", "confidence": 0.72},
@@ -890,10 +900,20 @@ async def seed_review_queue_and_imagery(
             },
             {
                 "type": ReviewType.ENTITY_RESOLUTION,
-                "subject": {"extracted_name": "Kata'ib Sayyid al-Shuhada", "context": "Statement claiming responsibility for border drone launch"},
+                "subject": {
+                    "candidate_name": "Kata'ib Sayyid al-Shuhada",
+                    "link_kind": "subject",
+                    "target_type": "claim",
+                    "target_id": str(target_claim.id) if target_claim else None,
+                    "document_id": str(doc.id) if doc else None,
+                    "context": "Statement claiming responsibility for border drone launch",
+                },
                 "candidates": [
-                    {"canonical_name": "Islamic Resistance in Iraq", "match_score": 0.88},
-                    {"canonical_name": "Popular Mobilization Forces", "match_score": 0.74},
+                    {
+                        "actor_id": str(iraq_actor.id) if iraq_actor else None,
+                        "canonical_name": "Islamic Resistance in Iraq",
+                        "score": 88.0,
+                    },
                 ],
             },
         ]
@@ -1055,7 +1075,7 @@ async def main_async() -> None:
         await seed_investigations_and_monitors(session, user.id)
 
         # 12. Review Queue & Imagery
-        await seed_review_queue_and_imagery(session, doc_map)
+        await seed_review_queue_and_imagery(session, doc_map, claim_map, actor_map)
 
         # 13. Disagreements & Model Reviews
         await seed_disagreements_and_model_reviews(session, user.id)

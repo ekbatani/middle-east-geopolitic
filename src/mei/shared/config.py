@@ -23,6 +23,13 @@ class Settings(BaseSettings):
     llm_api_key: str = ""
     llm_base_url: str = ""
 
+    # Rate limiting & queuing (0 / -1 means provider-aware default)
+    llm_max_concurrency: int = Field(default=0, ge=0)
+    llm_min_request_interval_seconds: float = Field(default=-1.0, ge=-1.0)
+    llm_max_retries: int = Field(default=5, ge=0, le=20)
+    llm_retry_backoff_base_seconds: float = Field(default=2.0, ge=0.1, le=60.0)
+    llm_retry_backoff_max_seconds: float = Field(default=60.0, ge=1.0, le=300.0)
+
     # Multi-model review (design doc section 35, Phase 6): a second model
     # used only to shadow-check high-impact risk assessments. Empty disables
     # the feature entirely, matching the `llm_api_key`-empty precedent.

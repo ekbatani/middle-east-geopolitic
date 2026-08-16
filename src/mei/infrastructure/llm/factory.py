@@ -13,6 +13,20 @@ PROVIDER_BASE_URLS: dict[str, str] = {
     "ollama": "http://localhost:11434/v1",
 }
 
+PROVIDER_CONCURRENCY_DEFAULTS: dict[str, int] = {
+    "nvidia_build": 1,
+    "nvidia": 1,
+    "nvidia-build": 1,
+    "ollama": 1,
+}
+
+PROVIDER_INTERVAL_DEFAULTS: dict[str, float] = {
+    "nvidia_build": 1.5,
+    "nvidia": 1.5,
+    "nvidia-build": 1.5,
+    "ollama": 0.5,
+}
+
 
 def _create_llm_adapter(provider: str, model: str | None = None) -> StructuredLLM:
     settings = get_settings()
@@ -21,7 +35,25 @@ def _create_llm_adapter(provider: str, model: str | None = None) -> StructuredLL
         raise ValueError(f"Unsupported LLM provider: {settings.llm_provider}")
 
     base_url = settings.llm_base_url or PROVIDER_BASE_URLS.get(provider_key)
-    return OpenAIStructuredLLM(model=model, base_url=base_url)
+
+    # Resolve concurrency and request pacing
+    concurrency = (
+        settings.llm_max_concurrency
+        if settings.llm_max_concurrency > 0
+        else PROVIDER_CONCURRENCY_DEFAULTS.get(provider_key, 5)
+    )
+    min_interval = (
+        settings.llm_min_request_interval_seconds
+        if settings.llm_min_request_interval_seconds >= 0.0
+        else PROVIDER_INTERVAL_DEFAULTS.get(provider_key, 0.0)
+    )
+
+    return OpenAIStructuredLLM(
+        model=model,
+        base_url=base_url,
+        max_concurrency=concurrency,
+        min_interval_seconds=min_interval,
+    )
 
 
 def get_structured_llm() -> StructuredLLM:

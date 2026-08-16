@@ -59,25 +59,31 @@ class ReviewService:
         if actor is None:
             raise NotFoundError(f"Actor {resolved_actor_id} not found")
 
-        subject = item.subject_json
-        link_kind = subject["link_kind"]
-        target_type = subject["target_type"]
-        target_id = UUID(str(subject["target_id"]))
+        subject = item.subject_json or {}
+        link_kind = subject.get("link_kind")
+        target_type = subject.get("target_type")
+        raw_target_id = subject.get("target_id")
 
-        if target_type == "event" and link_kind == "event_actor":
-            await self._events.add_actor(
-                event_id=target_id,
-                actor_id=actor.id,
-                role=str(subject.get("event_role") or "participant"),
-            )
-        elif target_type == "claim" and link_kind in _CLAIM_ROLES:
-            claim = await self._claims.get(target_id)
-            if claim is None:
-                raise NotFoundError(f"Claim {target_id} not found")
-            await self._claims.set_actor(claim, role=str(link_kind), actor_id=actor.id)
-        else:
+        if link_kind and target_type and raw_target_id:
+            target_id = UUID(str(raw_target_id))
+            if target_type == "event" and link_kind == "event_actor":
+                await self._events.add_actor(
+                    event_id=target_id,
+                    actor_id=actor.id,
+                    role=str(subject.get("event_role") or "participant"),
+                )
+            elif target_type == "claim" and link_kind in _CLAIM_ROLES:
+                claim = await self._claims.get(target_id)
+                if claim is None:
+                    raise NotFoundError(f"Claim {target_id} not found")
+                await self._claims.set_actor(claim, role=str(link_kind), actor_id=actor.id)
+            else:
+                raise ConflictError(
+                    f"Unsupported review subject: target_type={target_type!r} link_kind={link_kind!r}"
+                )
+        elif link_kind or target_type or raw_target_id:
             raise ConflictError(
-                f"Unsupported review subject: target_type={target_type!r} link_kind={link_kind!r}"
+                f"Incomplete review subject: target_type={target_type!r} link_kind={link_kind!r} target_id={raw_target_id!r}"
             )
 
         await self._review.resolve(
