@@ -45,9 +45,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             setScopes(res.scopes);
             setStoredAuth(res.access_token, stored.apiKey);
           })
-          .catch((err: any) => {
+          .catch((err: unknown) => {
             console.warn("Could not exchange stored API key for JWT token:", err);
-            if (err?.status === 401 || err?.status === 403) {
+            const status = (err as { status?: number })?.status;
+            if (status === 401 || status === 403) {
               setStoredAuth(null, null);
               setApiKey(null);
               setJwtToken(null);
@@ -77,8 +78,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         setStoredAuth(res.access_token, key);
       });
       return true;
-    } catch (err: any) {
-      if (err?.status === 401 || err?.status === 403) {
+    } catch (err: unknown) {
+      const status = (err as { status?: number })?.status;
+      if (status === 401 || status === 403) {
         throw new Error("Authentication failed: API key was not recognized or is expired.");
       }
       console.warn("Direct token exchange failed, storing raw API key as bearer:", err);

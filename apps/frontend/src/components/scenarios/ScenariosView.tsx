@@ -9,6 +9,7 @@ import {
   CreateScenarioRequest,
   UpdateScenarioRequest,
   ScenarioSimulationRequest,
+  ScopeType,
 } from "../../types";
 import { scenariosService } from "../../services";
 import {
@@ -273,7 +274,7 @@ export function ScenariosView() {
                 <select
                   value={simForm.scope_type}
                   onChange={(e) =>
-                    setSimForm({ ...simForm, scope_type: e.target.value as any })
+                    setSimForm({ ...simForm, scope_type: e.target.value as ScopeType })
                   }
                   className="w-full px-3 py-2 bg-slate-950 border border-slate-800 rounded-lg text-xs text-slate-200 focus:outline-none focus:border-sky-500"
                 >
